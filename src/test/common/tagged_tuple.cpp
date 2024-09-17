@@ -82,12 +82,13 @@ TEST_F(TaggedTupleTest, Get) {
     common::get_or_wildcard<gat>(t) = true;
 }
 
-void get_or_wildcard_test() {
+bool get_or_wildcard_test() {
     bool b;
     test_type t;
     b = common::get_or_wildcard<oth>(t);
     common::get_or_wildcard<oth>(test_type(t)) = "baz";
     b = common::get_or_wildcard<oth>((test_type const&)t);
+    return b;
 }
 
 TEST_F(TaggedTupleTest, Call) {

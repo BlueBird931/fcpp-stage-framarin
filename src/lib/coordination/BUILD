@@ -49,6 +49,33 @@ cc_library(
 )
 
 cc_library(
+    name = 'past_ctl',
+    hdrs = ['past_ctl.hpp'],
+    srcs = ['past_ctl.cpp'],
+    deps = [
+        "//lib:beautify",
+        "//lib/coordination:utils",
+    ],
+    visibility = [
+        '//visibility:public',
+    ],
+)
+
+cc_library(
+    name = 'slcs',
+    hdrs = ['slcs.hpp'],
+    srcs = ['slcs.cpp'],
+    deps = [
+        "//lib:beautify",
+        "//lib/common:tagged_tuple",
+        "//lib/coordination:spreading",
+    ],
+    visibility = [
+        '//visibility:public',
+    ],
+)
+
+cc_library(
     name = 'spreading',
     hdrs = ['spreading.hpp'],
     srcs = ['spreading.cpp'],

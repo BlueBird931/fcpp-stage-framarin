@@ -71,6 +71,8 @@ cc_library(
         "//lib/coordination:collection",
         "//lib/coordination:election",
         "//lib/coordination:geometry",
+        "//lib/coordination:past_ctl",
+        "//lib/coordination:slcs",
         "//lib/coordination:spreading",
         "//lib/coordination:time",
         "//lib/coordination:utils",

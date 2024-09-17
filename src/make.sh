@@ -49,7 +49,7 @@ errored=( )
 exitcodes=( )
 builder=cmake
 if [ -f BUILD ]; then
-    folders=( `ls */BUILD | sed 's|/BUILD||'` )
+    folders=( `ls */BUILD | sed 's|/BUILD||' | grep -v ^bazel-` )
 else
     folders=( `ls . | grep lib` `ls . | grep run` `ls . | grep test` )
 fi
@@ -670,8 +670,6 @@ while [ "$1" != "" ]; do
         $0 bazel test all
         reporter $0 bazel test all
         $0 bazel clean
-        $0 bazel gcc test all
-        reporter $0 bazel gcc test all
         reporter $0 doc
         quitter
     else
