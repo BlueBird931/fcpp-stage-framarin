@@ -87,6 +87,7 @@ bool get_or_wildcard_test() {
     test_type t;
     b = common::get_or_wildcard<oth>(t);
     common::get_or_wildcard<oth>(test_type(t)) = "baz";
+    common::get_or_wildcard<oth>(test_type(t)) *= 42;
     b = common::get_or_wildcard<oth>((test_type const&)t);
     return b;
 }
