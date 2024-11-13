@@ -20,6 +20,14 @@
     #endif
 #endif
 
+#ifdef __clang__
+    #define ANSI_START ""
+    #define ANSI_END ""
+#else
+    #define ANSI_START "\u001b[1m\u001b[4m"
+    #define ANSI_END "\u001b[0m"
+#endif
+
 #include <cassert>
 #include <functional>
 #include <memory>
