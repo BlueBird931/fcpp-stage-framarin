@@ -172,14 +172,43 @@ to_field<std::decay_t<A>> mod_other(node_t& node, trace_t call_point, A const& x
     return fcpp::details::mod_other(x, y, ctx.align());
 }
 
-//! @brief Reduces a field to a single value by a binary operation.
+/**
+ * @brief Reduces a field to a single value by a binary operation.
+ *
+ * The folding operation \p op has to have two arguments of type
+ * `to_local<A>`, with the first being the new value to be aggregated
+ * and the second being the current accumulated value.
+ *
+ * The folding operation **may** also have a first `device_t` argument,
+ * in which it will receive the id of the device that is currently being
+ * added to the aggregation.
+ *
+ * The folding operation is applied following the order of device ids.
+ * The accumulate starts from the value associated to the lowest id,
+ * and the operation is applied with values from the second id onwards.
+ */
 template <typename node_t, typename O, typename A>
 auto fold_hood(node_t& node, trace_t call_point, O&& op, A const& a) {
     auto ctx = node.void_context(call_point);
     return fcpp::details::fold_hood(op, a, ctx.align());
 }
 
-//! @brief Reduces a field to a single value by a binary operation with a given value for self.
+/**
+ * @brief Reduces a field to a single value by a binary operation with a given value for self.
+ *
+ * The folding operation \p op has to have two arguments, of type
+ * `to_local<A>` and `B`, with the first being the new value to be
+ * aggregated and the second being the current accumulated value.
+ *
+ * The folding operation **may** also have a first `device_t` argument,
+ * in which it will receive the id of the device that is currently being
+ * added to the aggregation.
+ *
+ * The folding operation is applied following the order of device ids.
+ * The accumulate starts from the value of argument \p b, and the
+ * operation is applied with values from all ids except for the
+ * self id in increasing order.
+*/
 template <typename node_t, typename O, typename A, typename B>
 auto fold_hood(node_t& node, trace_t call_point, O&& op, A const& a, B const& b) {
     auto ctx = node.void_context(call_point);

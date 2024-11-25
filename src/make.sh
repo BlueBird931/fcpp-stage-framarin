@@ -289,6 +289,7 @@ while [ "$1" != "" ]; do
         rm -rf doc bin
         if [ $builder == bazel ]; then
             bazel clean
+            rm MODULE.bazel MODULE.bazel.lock
         fi
     elif [ "$1" == "here" ]; then
         shift 1
