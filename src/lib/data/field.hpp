@@ -129,6 +129,7 @@ class field : public details::field_base<std::is_same<T, bool>::value> {
     friend class field;
     template <bool b>
     friend struct details::field_base;
+    //! @}
 
     //! @brief Function friendships
     //! @{
