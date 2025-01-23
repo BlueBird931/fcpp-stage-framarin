@@ -1,4 +1,4 @@
-// Copyright © 2023 Giorgio Audrito. All Rights Reserved.
+// Copyright © 2025 Giorgio Audrito. All Rights Reserved.
 
 /**
  * @file batch.hpp
@@ -255,8 +255,8 @@ auto recursive(T init, F&& f) {
     for (size_t i = 0; ; ++i) {
         common::option<T> r = f(i, prev);
         if (r.empty()) break;
-        prev = r;
-        v.push_back(r);
+        prev = (T)r;
+        v.push_back((T)r);
     }
     return details::make_generator<S, T>([=](auto& t, size_t i){
         common::get<S>(t) = v[i];

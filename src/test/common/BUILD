@@ -148,6 +148,7 @@ cc_test(
     deps = [
         "@gtest//:main",
         "//lib/common:multitype_map",
+        "//lib/common:option",
         "//lib/common:ostream",
         "//lib/common:plot",
         "//lib/common:serialize",
