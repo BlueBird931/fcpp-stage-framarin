@@ -92,6 +92,7 @@ cc_library(
         "//lib/data:field",
         "//lib/data:hyperloglog",
         "//lib/data:ordered",
+        "//lib/data:placed",
         "//lib/data:shape",
         "//lib/data:tuple",
         "//lib/data:vec",

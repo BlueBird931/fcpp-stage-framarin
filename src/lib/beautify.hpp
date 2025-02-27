@@ -76,4 +76,51 @@ template <typename node_t>                      \
 void main::operator()(node_t& node, times_t)
 
 
+//! @brief Macro defining a non-generic aggregate function with placements.
+#define PFUN        template <tier_t tier, typename node_t>
+
+//! @brief Macro defining the type arguments of an aggregate function with placements.
+#define PGEN(...)   template <tier_t tier, MACRO_MAPPER(__TYPE_ARG__, node_t, __VA_ARGS__)>
+
+//! @brief Macro inserting the default arguments.
+#define PARGS           std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point
+
+//! @brief Macro inserting the default arguments at function call.
+#define PCALL           std::integer_sequence<tier_t, tier>{}, node, __COUNTER__
+
+//! @brief Macro adding placement annotations to a local type.
+#define place(...)      placed<tier, __VA_ARGS__>
+
+/**
+ * @brief Macro for defining a main class with placements to be used in the calculus component. Usage:
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
+ * PMAIN(cur_tier, num_tiers) {
+ *   ...
+ * }
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * The code of the main function has access to the `node` object and the current `tier` value.
+ * The expression `cur_tier` accesses the tier of the current node (does not have to be a number).
+ */
+#define PMAIN(cur_tier, num_tiers)                  \
+struct main {                                       \
+    template <typename node_t>                      \
+    inline void operator()(node_t&, times_t);       \
+    template <tier_t tier, typename node_t>         \
+    inline void body(node_t&);                      \
+    template <tier_t tier, typename node_t>         \
+    void body(node_t&, times_t);                    \
+};                                                  \
+template <typename node_t>                          \
+void main::operator()(node_t& node, times_t) {      \
+    body<0>(node);                                  \
+}                                                   \
+template <tier_t tier, typename node_t>             \
+void main::body(node_t& node) {                     \
+    if (cur_tier == tier) body<(1<<tier)>(node, 0); \
+    else if (tier+1 < num_tiers) body<tier+1>(node);\
+}                                                   \
+template <tier_t tier, typename node_t>             \
+void main::body(node_t& node, times_t)
+//TODO: compiler flags to switch for easier version using a single tier (for deployment)
+
 #endif // FCPP_BEAUTIFY_H_

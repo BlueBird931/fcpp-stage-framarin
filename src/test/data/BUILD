@@ -60,6 +60,19 @@ cc_test(
 )
 
 cc_test(
+    name = "placed",
+    srcs = ["placed.cpp"],
+    deps = [
+        "@gtest//:main",
+        "//lib/data:placed",
+        "//test:helper",
+    ],
+    copts = ['-Iexternal/gtest/googletest/include/'],
+    args = ['--gtest_color=yes'],
+    timeout = 'short',
+)
+
+cc_test(
     name = "tuple",
     srcs = ["tuple.cpp"],
     deps = [

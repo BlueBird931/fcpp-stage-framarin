@@ -52,6 +52,18 @@ cc_library(
 )
 
 cc_library(
+    name = 'placed',
+    hdrs = ['placed.hpp'],
+    srcs = ['placed.cpp'],
+    deps = [
+        "//lib/data:field",
+    ],
+    visibility = [
+        '//visibility:public',
+    ],
+)
+
+cc_library(
     name = 'shape',
     hdrs = ['shape.hpp'],
     srcs = ['shape.cpp'],

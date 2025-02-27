@@ -168,6 +168,7 @@ set(
     lib/data/field.cpp
     lib/data/hyperloglog.cpp
     lib/data/ordered.cpp
+    lib/data/placed.cpp
     lib/data/shape.cpp
     lib/data/tuple.cpp
     lib/data/vec.cpp
@@ -355,6 +356,7 @@ if(FCPP_BUILD_TESTS)
         fcpp_test(test/data/field.cpp)
         fcpp_test(test/data/hyperloglog.cpp)
         fcpp_test(test/data/ordered.cpp)
+        fcpp_test(test/data/placed.cpp)
         fcpp_test(test/data/tuple.cpp)
         fcpp_test(test/data/vec.cpp)
         fcpp_test(test/deployment/hardware_connector.cpp)

@@ -168,6 +168,12 @@
 #endif
 
 
+#ifndef FCPP_TIERS
+//! @brief Setting defining the maximum number of different tiers of nodes supported.
+#define FCPP_TIERS 8
+#endif
+
+
 #ifndef FCPP_THREADS
     //! @brief Setting regulating the number of threads to be used.
     #define FCPP_THREADS std::thread::hardware_concurrency()
@@ -277,6 +283,9 @@ namespace fcpp {
 
     //! @brief Type for hop counts (depends on @ref FCPP_HOPS).
     using hops_t = intn_t<FCPP_HOPS>;
+
+    //! @brief Type for tiers (peer types, depends on @ref FCPP_TIERS).
+    using tier_t = uintn_t<FCPP_TIERS>;
 }
 
 
