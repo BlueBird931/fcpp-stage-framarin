@@ -1,5 +1,7 @@
 // Copyright © 2025 Giorgio Audrito. All Rights Reserved.
 
+#include <array>
+
 #include "lib/data/placed.hpp"
 
 #include "test/helper.hpp"

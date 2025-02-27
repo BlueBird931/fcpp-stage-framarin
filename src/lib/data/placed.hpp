@@ -233,7 +233,8 @@ class placed {
     //! @{
     template <tier_t tier1, typename T1, tier_t p1, tier_t q1, typename F>
     friend placed<tier1,T1,p1,q1> details::place_data(common::type_sequence<placed<tier1,T1,p1,q1>>, F&&);
-    friend auto const& details::maybe_get_data(placed<tier,T,p,q> const&);
+    template <tier_t tier1, typename T1, tier_t p1, tier_t q1>
+    friend auto const& details::maybe_get_data(placed<tier1,T1,p1,q1> const&);
     //! @}
     //! @endcond
 
