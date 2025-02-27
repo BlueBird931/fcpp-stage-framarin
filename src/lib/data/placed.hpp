@@ -99,8 +99,6 @@ constexpr tier_t extract_tier<U<A, N>, Ts...> = extract_tier<A, Ts...>;
 
 
 /**
- * @name is_placed
- *
  * Constant which is true if and only if at least one of the type parameters are built through array-like
  * and tuple-like classes from specializations of the placed template.
  */
@@ -429,11 +427,7 @@ namespace details {
 }
 //! @endcond
 
-/**
- * @name pmap_hood
- *
- * Applies an operator pointwise on a sequence of placed fields.
- */
+//! @brief Applies an operator pointwise on a sequence of placed fields.
 template <typename F, typename... Ts>
 auto pmap_hood(F&& op, Ts const&... xs) {
     constexpr tier_t tier = extract_tier<Ts...>;
