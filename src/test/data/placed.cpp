@@ -168,6 +168,15 @@ TEST(PlacedTest, Constructors) {
     x2.get_or(3);
 }
 
+TEST(PlacedTest, Access) {
+    EXPECT_EQ(-1, details::self(field<int>(-1), 3));
+    EXPECT_EQ(-3, details::self(-3, 999));
+    auto x = details::make_placed<8, double, 12, 2>({1, 2, 3}, {2, 4, 6, 8});
+    auto r1 = details::self(x, 2);
+    EXPECT_SAME(decltype(r1), placed<8, double, 12, 0>);
+    EXPECT_EQ(r1.get_or(999), 6.0);
+}
+
 TEST(PlacedTest, PMapHood) {
     placed<8,int> x(1);
     placed<8,int,11,6> y(2);

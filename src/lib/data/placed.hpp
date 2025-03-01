@@ -400,6 +400,30 @@ namespace details {
         return x.m_data.front();
     }
 
+    //! @brief Accesses the value from a placed field corresponing to a certain device (empty overload).
+    template <tier_t tier, typename T, tier_t p, tier_t q>
+    inline placed<tier,T,p,0> maybe_self(std::false_type, placed<tier,T,p,q> const& x, device_t i) {
+        return {};
+    }
+
+    //! @brief Accesses the value from a placed field corresponing to a certain device (active overload).
+    template <tier_t tier, typename T, tier_t p, tier_t q>
+    inline placed<tier,T,p,0> maybe_self(std::true_type, placed<tier,T,p,q> const& x, device_t i) {
+        return self(maybe_get_data(x), i);
+    }
+
+    //! @brief Accesses the value from a placed field corresponing to a certain device (const).
+    template <tier_t tier, typename T, tier_t p, tier_t q>
+    inline placed<tier,T,p,0> self(placed<tier,T,p,q> const& x, device_t i) {
+        return maybe_self(std::integral_constant<bool, bool(tier & p)>{}, x, i);
+    }
+
+    //! @brief Accesses the value from a placed field corresponing to a certain device (non-const).
+    template <tier_t tier, typename T, tier_t p, tier_t q>
+    inline placed<tier,T,p,0> self(placed<tier,T,p,q>& x, device_t i) {
+        return maybe_self(std::integral_constant<bool, bool(tier & p)>{}, x, i);
+    }
+
     //! @brief Applies an operator pointwise on a sequence of placed fields (empty overload).
     template <typename T, typename... Ts>
     T maybe_map_hood(std::false_type, common::type_sequence<T>, Ts&&...) {
