@@ -334,7 +334,7 @@ class placed {
 
   private:
     //! @brief Field constructor (copying).
-    placed(field<T> const& f) : m_data(maybe_field(std::integral_constant<int, (tier&p) and q>{}, f)) {}
+    placed(field<T> const& f) : m_data(maybe_field(std::integral_constant<bool, (tier&p) and q>{}, f)) {}
 
     //! @brief Field constructor (moving).
     placed(field<T>&& f) : m_data(maybe_field(std::integral_constant<bool, (tier&p) and q>{}, std::move(f))) {}
@@ -516,9 +516,42 @@ namespace details {
     }
     // TODO: fold for tuples of placed
     //! @}
+
+    //! @brief Performs the domain union of multiple placed fields (no arguments).
+    template <typename R>
+    inline R get_or(common::type_sequence<R>) {
+        return {};
+    }
+
+    //! @brief Performs the domain union of multiple placed fields (forward declaration).
+    template <typename R, tier_t tier, typename T, tier_t p, tier_t q, tier_t... ps, tier_t... qs>
+    inline auto get_or(common::type_sequence<R>, placed<tier,T,p,q> const&, placed<tier,T,ps,qs> const&...);
+
+    //! @brief Performs the domain union of multiple placed fields (first undefined).
+    template <typename R, tier_t tier, typename T, tier_t p, tier_t q, tier_t... ps, tier_t... qs>
+    inline auto get_or(common::type_sequence<R> r, std::false_type, placed<tier,T,p,q> const&, placed<tier,T,ps,qs> const&... fs) {
+        return get_or(r, fs...);
+    }
+
+    //! @brief Performs the domain union of multiple placed fields (first defined).
+    template <typename R, tier_t tier, typename T, tier_t p, tier_t q, tier_t... ps, tier_t... qs>
+    inline auto get_or(common::type_sequence<R> r, std::true_type, placed<tier,T,p,q> const& f, placed<tier,T,ps,qs> const&...) {
+        return place_data(common::type_sequence<R>{}, maybe_get_data(f));
+    }
+
+    //! @brief Performs the domain union of multiple placed fields (some arguments).
+    template <typename R, tier_t tier, typename T, tier_t p, tier_t q, tier_t... ps, tier_t... qs>
+    inline auto get_or(common::type_sequence<R> r, placed<tier,T,p,q> const& f, placed<tier,T,ps,qs> const&... fs) {
+        return get_or(r, std::integral_constant<bool, bool(tier&p)>{}, f, fs...);
+    }
 }
 //! @endcond
 
+//! @brief Performs the domain union of multiple placed fields.
+template <tier_t tier, typename T, tier_t... ps, tier_t... qs, typename R = placed<tier,T,tier_sup<ps...>,tier_sup<qs...>>>
+R get_or(placed<tier,T,ps,qs> const&... fs) {
+    return details::get_or(common::type_sequence<R>{}, fs...);
+}
 
 /**
  * @brief Overloads unary operators for placed fields.

@@ -250,3 +250,24 @@ TEST(PlacedTest, FoldHood) {
     EXPECT_SAME(decltype(r2), placed<8, double, 12, 0>);
     EXPECT_EQ(r2.get_or(999), 11.0);
 }
+
+TEST(PlacedTest, GetOr) {
+    placed<8, int, 12, 2> x(1);
+    placed<8, int, 6, 4> y(2);
+    placed<8, int, 3, 8> z(4);
+    auto r1 = get_or(x);
+    EXPECT_SAME(decltype(r1), decltype(x));
+    EXPECT_EQ(r1.get_or(888), x.get_or(999));
+    auto r2 = get_or(x, y);
+    EXPECT_SAME(decltype(r2), placed<8, int, 14, 6>);
+    EXPECT_EQ(r2.get_or(888), x.get_or(999));
+    auto r3 = get_or(y, x);
+    EXPECT_SAME(decltype(r3), placed<8, int, 14, 6>);
+    EXPECT_EQ(r3.get_or(888), x.get_or(999));
+    auto r4 = get_or(y, z);
+    EXPECT_SAME(decltype(r4), placed<8, int, 7, 12>);
+    EXPECT_EQ(r4.get_or(888), 888);
+    auto r5 = get_or(y, z, x);
+    EXPECT_SAME(decltype(r5), placed<8, int, 15, 14>);
+    EXPECT_EQ(r5.get_or(888), x.get_or(999));
+}
