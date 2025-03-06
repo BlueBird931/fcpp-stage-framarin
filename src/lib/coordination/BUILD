@@ -4,6 +4,7 @@ cc_library(
     srcs = ['basics.cpp'],
     deps = [
         "//lib/data:field",
+        "//lib/data:placed",
         "//lib/internal:trace",
     ],
     visibility = [

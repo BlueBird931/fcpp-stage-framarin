@@ -157,6 +157,9 @@ TEST(PlacedTest, ToPlaced) {
                  G(to_placed<tier, std::tuple<placed<tier, double, 12, 6>, field<char>>>));
     CHECK_PLACED(G(std::array<std::tuple<std::array<double,3>, char>,4>), 6, -1,
                  G(to_placed<tier, std::array<std::tuple<std::array<placed<tier, double, 6, 7>,3>&, field<char>>,4>>));
+    EXPECT_SAME(decay_placed<int>, int);
+    EXPECT_SAME(decay_placed<placed<8,int,2,0>>, int);
+    EXPECT_SAME(decay_placed<placed<8,int,2,4>>, field<int>);
 }
 
 TEST(PlacedTest, Constructors) {

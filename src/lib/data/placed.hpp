@@ -193,6 +193,18 @@ namespace details {
     //! @brief If the second parameter is of the form field<...> const&.
     template <tier_t tier, typename T>
     struct to_placed<tier, field<T> const&, true> : public single_placed<tier, tier, T const&, tier_t(-1), tier_t(-1)> {};
+
+    //! @brief Removes placement descriptors if present (inactive).
+    template <typename T>
+    struct decay_placed {
+        using type = T;
+    };
+
+    //! @brief Removes placement descriptors if present (inactive).
+    template <tier_t tier, typename T, tier_t p, tier_t q>
+    struct decay_placed<placed<tier,T,p,q>> {
+        using type = typename placed<tier,T,p,q>::field_type;
+    };
 }
 //! @endcond INTERNAL
 
@@ -204,6 +216,11 @@ using to_placed = details::to_placed<tier, common::partial_decay<A>>;
 //! @brief Extract the non-placed type from a placed type.
 template <tier_t tier, typename A>
 using del_placed = typename details::to_placed<tier, A>::value_type;
+
+
+//! @brief Removes placement descriptors if present.
+template <typename A>
+using decay_placed = typename details::decay_placed<A>::type;
 
 
 /**

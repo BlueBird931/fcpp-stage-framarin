@@ -9,6 +9,7 @@
 #define FCPP_COORDINATION_BASICS_H_
 
 #include "lib/data/field.hpp"
+#include "lib/data/placed.hpp"
 #include "lib/internal/trace.hpp"
 
 
@@ -278,6 +279,10 @@ using return_result_type = typename details::result_unpack<std::decay_t<D>, std:
 template <typename D, typename T>
 using export_result_type = typename details::result_unpack<std::decay_t<D>, std::decay_t<std::result_of_t<T>>>::type::back;
 
+//! @brief Type compatible to the argument of an nbr call given default of type D.
+template <typename D>
+using nbr_arg = std::conditional_t<is_placed<D>, D, to_field<D>>;
+
 
 //! @name old-based coordination operators
 //! @{
@@ -326,7 +331,7 @@ inline A old(node_t& node, trace_t call_point, A const& f) {
 
 //! @brief The exports type used by the old construct with message type `T`.
 template <typename T>
-using old_t = common::export_list<T>;
+using old_t = common::export_list<decay_placed<T>>;
 //! @}
 
 
@@ -342,8 +347,8 @@ using old_t = common::export_list<T>;
  * the second element of the returned pair is written in the exports.
  */
 template <typename node_t, typename D, typename G>
-return_result_type<D, G(to_field<D>)> nbr(node_t& node, trace_t call_point, D const& f0, G&& op) {
-    using A = export_result_type<D, G(to_field<D>)>;
+return_result_type<D, G(nbr_arg<D>)> nbr(node_t& node, trace_t call_point, D const& f0, G&& op) {
+    using A = export_result_type<D, G(nbr_arg<D>)>;
     auto ctx = node.template nbr_context<A>(call_point);
     auto f = op(ctx.nbr(f0));
     ctx.insert(details::maybe_second(common::type_sequence<D>{}, f));
@@ -354,13 +359,13 @@ return_result_type<D, G(to_field<D>)> nbr(node_t& node, trace_t call_point, D co
  *
  * Equivalent to:
  * ~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
- * nbr(f0, [](to_field<A> fn){
+ * nbr(f0, [](nbr_arg<A> fn){
  *     return std::make_pair(fn, f);
  * })
  * ~~~~~~~~~~~~~~~~~~~~~~~~~
  */
 template <typename node_t, typename D, typename A, typename = std::enable_if_t<std::is_convertible<D, A>::value>>
-to_field<A> nbr(node_t& node, trace_t call_point, D const& f0, A const& f) {
+nbr_arg<A> nbr(node_t& node, trace_t call_point, D const& f0, A const& f) {
     auto ctx = node.template nbr_context<A>(call_point);
     ctx.insert(f);
     return ctx.nbr(f0);
@@ -371,13 +376,13 @@ to_field<A> nbr(node_t& node, trace_t call_point, D const& f0, A const& f) {
  * Equivalent to `nbr(f, f)`.
  */
 template <typename node_t, typename A>
-inline to_field<A> nbr(node_t& node, trace_t call_point, A const& f) {
+inline nbr_arg<A> nbr(node_t& node, trace_t call_point, A const& f) {
     return nbr(node, call_point, f, f);
 }
 
 //! @brief The exports type used by the nbr construct with message type `T`.
 template <typename T>
-using nbr_t = common::export_list<T>;
+using nbr_t = common::export_list<decay_placed<T>>;
 //! @}
 
 
@@ -391,8 +396,8 @@ using nbr_t = common::export_list<T>;
  * the second element of the returned pair is written in the exports.
  */
 template <typename node_t, typename D, typename G>
-return_result_type<D, G(D, to_field<D>)> oldnbr(node_t& node, trace_t call_point, D const& f0, G&& op) {
-    using A = export_result_type<D, G(D, to_field<D>)>;
+return_result_type<D, G(D, nbr_arg<D>)> oldnbr(node_t& node, trace_t call_point, D const& f0, G&& op) {
+    using A = export_result_type<D, G(D, nbr_arg<D>)>;
     auto ctx = node.template nbr_context<A>(call_point);
     auto f = op(align(node, call_point, ctx.old(f0)), ctx.nbr(f0));
     ctx.insert(details::maybe_second(common::type_sequence<D>{}, f));
@@ -401,7 +406,7 @@ return_result_type<D, G(D, to_field<D>)> oldnbr(node_t& node, trace_t call_point
 
 //! @brief The exports type used by the oldnbr construct with message type `T`.
 template <typename T>
-using oldnbr_t = common::export_list<T>;
+using oldnbr_t = common::export_list<decay_placed<T>>;
 //! @}
 
 
