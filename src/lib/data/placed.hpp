@@ -254,6 +254,8 @@ class placed {
     //! @endcond
 
   public:
+    //! @brief The dual placed type.
+    using dual_type = placed<tier, T, q, p>;
     //! @brief The contained type.
     using value_type = T;
     //! @brief The underlying field type.
@@ -417,39 +419,49 @@ namespace details {
         return x.m_data.front();
     }
 
-    //! @brief Accesses the value from a placed field corresponing to a certain device (empty overload).
-    template <tier_t tier, typename T, tier_t p, tier_t q>
-    inline placed<tier,T,p,0> maybe_self(std::false_type, placed<tier,T,p,q> const& x, device_t i) {
-        return {};
+    //! @brief Applies a void function on a sequence of placed fields (empty overload).
+    template <typename T, typename... Ts>
+    inline void maybe_do(std::false_type, Ts&&...) {}
+    //! @brief Applies a void function on a sequence of placed fields (active overload).
+    template <typename T, typename F, typename... Ts>
+    inline void maybe_do(std::true_type, F&& op, Ts&&... xs) {
+        std::forward<F>(op)(maybe_get_data(std::forward<Ts>(xs))...);
+    }
+    //! @brief Applies a function on a sequence of placed fields (active overload).
+    template <tier_t tier, typename T, tier_t p, tier_t q, typename... Ts>
+    inline void maybe_do(common::type_sequence<placed<tier,T,p,q>>, Ts&&... xs) {
+        maybe_do(std::integral_constant<bool, bool(tier&p)>{}, std::forward<Ts>(xs)...);
     }
 
-    //! @brief Accesses the value from a placed field corresponing to a certain device (active overload).
-    template <tier_t tier, typename T, tier_t p, tier_t q>
-    inline placed<tier,T,p,0> maybe_self(std::true_type, placed<tier,T,p,q> const& x, device_t i) {
-        return self(maybe_get_data(x), i);
+    //! @brief Applies a function on a sequence of placed fields (empty overload).
+    template <typename T, typename... Ts>
+    inline T maybe_perform(std::false_type, common::type_sequence<T>, Ts&&...) {
+        return {};
+    }
+    //! @brief Applies a function on a sequence of placed fields (active overload).
+    template <typename T, typename F, typename... Ts>
+    inline T maybe_perform(std::true_type, common::type_sequence<T> t, F&& op, Ts&&... xs) {
+        return place_data(t, std::forward<F>(op)(maybe_get_data(std::forward<Ts>(xs))...));
+    }
+    //! @brief Applies a function on a sequence of placed fields (active overload).
+    template <tier_t tier, typename T, tier_t p, tier_t q, typename... Ts>
+    inline placed<tier,T,p,q> maybe_perform(common::type_sequence<placed<tier,T,p,q>> t, Ts&&... xs) {
+        return maybe_perform(std::integral_constant<bool, bool(tier&p)>{}, t, std::forward<Ts>(xs)...);
     }
 
     //! @brief Accesses the value from a placed field corresponing to a certain device (const).
     template <tier_t tier, typename T, tier_t p, tier_t q>
     inline placed<tier,T,p,0> self(placed<tier,T,p,q> const& x, device_t i) {
-        return maybe_self(std::integral_constant<bool, bool(tier & p)>{}, x, i);
+        return maybe_perform(common::type_sequence<placed<tier,T,p,0>>{}, [i](auto const& y){
+            return self(y, i);
+        }, x);
     }
-
     //! @brief Accesses the value from a placed field corresponing to a certain device (non-const).
     template <tier_t tier, typename T, tier_t p, tier_t q>
     inline placed<tier,T,p,0> self(placed<tier,T,p,q>& x, device_t i) {
-        return maybe_self(std::integral_constant<bool, bool(tier & p)>{}, x, i);
-    }
-
-    //! @brief Applies an operator pointwise on a sequence of placed fields (empty overload).
-    template <typename T, typename... Ts>
-    T maybe_map_hood(std::false_type, common::type_sequence<T>, Ts&&...) {
-        return {};
-    }
-    //! @brief Applies an operator pointwise on a sequence of placed fields (active overload).
-    template <typename T, typename F, typename... Ts>
-    T maybe_map_hood(std::true_type, common::type_sequence<T> t, F&& op, Ts const&... xs) {
-        return place_data(t, map_hood(op, maybe_get_data(xs)...));
+        return maybe_perform(common::type_sequence<placed<tier,T,p,0>>{}, [i](auto const& y){
+            return self(y, i);
+        }, x);
     }
 
     //! @brief Applies an operator pointwise on a sequence of placed fields (not placed overload).
@@ -463,7 +475,9 @@ namespace details {
         constexpr tier_t p = P::p_value;
         constexpr tier_t q = P::q_value;
         using T = local_result<F, Ss...>;
-        return maybe_map_hood(std::integral_constant<bool, bool(tier & p)>{}, common::type_sequence<placed<tier,T,p,q>>{}, std::forward<F>(op), xs...);
+        return maybe_perform(common::type_sequence<placed<tier,T,p,q>>{}, [&op](auto const&... ys){
+            return map_hood(op, ys...);
+        }, xs...);
     }
 }
 //! @endcond
@@ -485,34 +499,6 @@ namespace details {
     template <tier_t tier, typename F, typename A, typename B, tier_t p>
     using fold_result = placed<tier, std::result_of_t<F(A const&, B const&)>, p, 0>;
 
-    //! @brief Inclusive folding (inactive).
-    template <typename F, tier_t tier, typename A, tier_t p, tier_t q>
-    inline fold_result<tier, F, A, A, p>
-    maybe_fold_hood(std::false_type, F&& op, placed<tier,A,p,q> const& f, std::vector<device_t> const& dom) {
-        return {};
-    }
-
-    //! @brief Inclusive folding (active).
-    template <typename F, tier_t tier, typename A, tier_t p, tier_t q>
-    inline fold_result<tier, F, A, A, p>
-    maybe_fold_hood(std::true_type, F&& op, placed<tier,A,p,q> const& f, std::vector<device_t> const& dom) {
-        return fold_hood(std::forward<F>(op), maybe_get_data(f), dom);
-    }
-
-    //! @brief Exclusive folding (inactive).
-    template <typename F, tier_t tier, typename A, tier_t p, tier_t q, typename B>
-    inline fold_result<tier, F, A, B, p>
-    maybe_fold_hood(std::false_type, F&& op, placed<tier,A,p,q> const& f, B const& b, std::vector<device_t> const& dom, device_t i) {
-        return {};
-    }
-
-    //! @brief Exclusive folding (active).
-    template <typename F, tier_t tier, typename A, tier_t p, tier_t q, typename B>
-    inline fold_result<tier, F, A, B, p>
-    maybe_fold_hood(std::true_type, F&& op, placed<tier,A,p,q> const& f, B const& b, std::vector<device_t> const& dom, device_t i) {
-        return fold_hood(std::forward<F>(op), maybe_get_data(f), b, dom, i);
-    }
-
     /**
      * @name fold_hood
      *
@@ -523,13 +509,17 @@ namespace details {
     template <typename F, tier_t tier, typename A, tier_t p, tier_t q>
     inline fold_result<tier, F, A, A, p>
     fold_hood(F&& op, placed<tier,A,p,q> const& f, std::vector<device_t> const& dom) {
-        return maybe_fold_hood(std::integral_constant<bool, bool(tier&p)>{}, std::forward<F>(op), f, dom);
+        return maybe_perform(common::type_sequence<fold_result<tier, F, A, A, p>>{}, [&op, &dom](auto const& x){
+            return fold_hood(op, x, dom);
+        }, f);
     }
     //! @brief Exclusive folding.
     template <typename F, tier_t tier, typename A, tier_t p, tier_t q, typename B>
     inline fold_result<tier, F, A, B, p>
     fold_hood(F&& op, placed<tier,A,p,q> const& f, B const& b, std::vector<device_t> const& dom, device_t i) {
-        return maybe_fold_hood(std::integral_constant<bool, bool(tier&p)>{}, std::forward<F>(op), f, b, dom, i);
+        return maybe_perform(common::type_sequence<fold_result<tier, F, A, B, p>>{}, [&op, &b, &dom, i](auto const& x){
+            return fold_hood(op, x, b, dom, i);
+        }, f);
     }
     // TODO: fold for tuples of placed
     //! @}
@@ -542,23 +532,23 @@ namespace details {
 
     //! @brief Performs the domain union of multiple placed fields (forward declaration).
     template <typename R, tier_t tier, typename T, tier_t p, tier_t q, tier_t... ps, tier_t... qs>
-    inline auto get_or(common::type_sequence<R>, placed<tier,T,p,q> const&, placed<tier,T,ps,qs> const&...);
+    inline R get_or(common::type_sequence<R>, placed<tier,T,p,q> const&, placed<tier,T,ps,qs> const&...);
 
     //! @brief Performs the domain union of multiple placed fields (first undefined).
     template <typename R, tier_t tier, typename T, tier_t p, tier_t q, tier_t... ps, tier_t... qs>
-    inline auto get_or(common::type_sequence<R> r, std::false_type, placed<tier,T,p,q> const&, placed<tier,T,ps,qs> const&... fs) {
+    inline R get_or(common::type_sequence<R> r, std::false_type, placed<tier,T,p,q> const&, placed<tier,T,ps,qs> const&... fs) {
         return get_or(r, fs...);
     }
 
     //! @brief Performs the domain union of multiple placed fields (first defined).
     template <typename R, tier_t tier, typename T, tier_t p, tier_t q, tier_t... ps, tier_t... qs>
-    inline auto get_or(common::type_sequence<R> r, std::true_type, placed<tier,T,p,q> const& f, placed<tier,T,ps,qs> const&...) {
+    inline R get_or(common::type_sequence<R> r, std::true_type, placed<tier,T,p,q> const& f, placed<tier,T,ps,qs> const&...) {
         return place_data(common::type_sequence<R>{}, maybe_get_data(f));
     }
 
     //! @brief Performs the domain union of multiple placed fields (some arguments).
     template <typename R, tier_t tier, typename T, tier_t p, tier_t q, tier_t... ps, tier_t... qs>
-    inline auto get_or(common::type_sequence<R> r, placed<tier,T,p,q> const& f, placed<tier,T,ps,qs> const&... fs) {
+    inline R get_or(common::type_sequence<R> r, placed<tier,T,p,q> const& f, placed<tier,T,ps,qs> const&... fs) {
         return get_or(r, std::integral_constant<bool, bool(tier&p)>{}, f, fs...);
     }
 }

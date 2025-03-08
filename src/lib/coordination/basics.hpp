@@ -241,30 +241,30 @@ field<device_t> nbr_uid(node_t& node, trace_t call_point) {
 namespace details {
     template <typename D, typename T>
     struct result_unpack {
-        using type = std::enable_if_t<std::is_convertible<D, T>::value, common::type_sequence<T, T>>;
+        using type = std::enable_if_t<std::is_same<D, void>::value or std::is_convertible<D, T>::value, common::type_sequence<T, T>>;
     };
-    template <typename D, typename R, typename A>
-    struct result_unpack<D, tuple<R, A>> {
+    template <typename D, typename R, typename E>
+    struct result_unpack<D, tuple<R, E>> {
         using type = std::conditional_t<
-            std::is_convertible<D, tuple<R, A>>::value,
-            common::type_sequence<tuple<R, A>, tuple<R, A>>,
-            std::enable_if_t<std::is_convertible<D, tuple<R, A>>::value or std::is_convertible<D, A>::value, common::type_sequence<R, A>>
+            std::is_convertible<D, tuple<R, E>>::value,
+            common::type_sequence<tuple<R, E>, tuple<R, E>>,
+            std::enable_if_t<std::is_convertible<D, tuple<R, E>>::value or std::is_convertible<D, E>::value or std::is_same<D, void>::value, common::type_sequence<R, E>>
         >;
     };
 
-    template <typename D, typename R, typename A, typename = std::enable_if_t<std::is_convertible<D, A>::value>>
-    inline R&& maybe_first(common::type_sequence<D>, tuple<R,A>& t) {
+    template <typename D, typename R, typename E, typename = std::enable_if_t<std::is_convertible<D, E>::value or std::is_same<D, void>::value>>
+    inline R&& maybe_first(common::type_sequence<D>, tuple<R,E>& t) {
         return std::move(get<0>(t));
     }
-    template <typename D, typename R, typename A, typename = std::enable_if_t<std::is_convertible<D, A>::value>>
-    inline A&& maybe_second(common::type_sequence<D>, tuple<R,A>& t) {
+    template <typename D, typename R, typename E, typename = std::enable_if_t<std::is_convertible<D, E>::value or std::is_same<D, void>::value>>
+    inline E&& maybe_second(common::type_sequence<D>, tuple<R,E>& t) {
         return std::move(get<1>(t));
     }
-    template <typename D, typename T, typename = std::enable_if_t<std::is_convertible<D, T>::value>>
+    template <typename D, typename T, typename = std::enable_if_t<std::is_convertible<D, T>::value or std::is_same<D, void>::value>>
     inline T&& maybe_first(common::type_sequence<D>, T& x) {
         return std::move(x);
     }
-    template <typename D, typename T, typename = std::enable_if_t<std::is_convertible<D, T>::value>>
+    template <typename D, typename T, typename = std::enable_if_t<std::is_convertible<D, T>::value or std::is_same<D, void>::value>>
     inline T& maybe_second(common::type_sequence<D>, T& x) {
         return x;
     }
@@ -341,15 +341,15 @@ using old_t = common::export_list<decay_placed<T>>;
  * @brief The neighbours' value of the result (defaults to first argument), modified through the second argument.
  *
  * Corresponds to the `share` construct of the field calculus.
- * The \p op argument may return a `A` or a `tuple<R,A>`, where `A` is
+ * The \p op argument may return a `E` or a `tuple<R,E>`, where `E` is
  * compatible with the default type `D`. In the latter case,
  * the first element of the returned pair is returned by the function, while
  * the second element of the returned pair is written in the exports.
  */
 template <typename node_t, typename D, typename G>
 return_result_type<D, G(nbr_arg<D>)> nbr(node_t& node, trace_t call_point, D const& f0, G&& op) {
-    using A = export_result_type<D, G(nbr_arg<D>)>;
-    auto ctx = node.template nbr_context<A>(call_point);
+    using E = export_result_type<D, G(nbr_arg<D>)>;
+    auto ctx = node.template nbr_context<E>(call_point);
     auto f = op(ctx.nbr(f0));
     ctx.insert(details::maybe_second(common::type_sequence<D>{}, f));
     return details::maybe_first(common::type_sequence<D>{}, f);
@@ -359,25 +359,78 @@ return_result_type<D, G(nbr_arg<D>)> nbr(node_t& node, trace_t call_point, D con
  *
  * Equivalent to:
  * ~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
- * nbr(f0, [](nbr_arg<A> fn){
- *     return std::make_pair(fn, f);
+ * nbr(CALL, f0, [](nbr_arg<E> fn){
+ *     return make_tuple(fn, f);
  * })
  * ~~~~~~~~~~~~~~~~~~~~~~~~~
  */
-template <typename node_t, typename D, typename A, typename = std::enable_if_t<std::is_convertible<D, A>::value>>
-nbr_arg<A> nbr(node_t& node, trace_t call_point, D const& f0, A const& f) {
-    auto ctx = node.template nbr_context<A>(call_point);
+template <typename node_t, typename D, typename E, typename = std::enable_if_t<std::is_convertible<D, E>::value>>
+nbr_arg<E> nbr(node_t& node, trace_t call_point, D const& f0, E const& f) {
+    auto ctx = node.template nbr_context<E>(call_point);
     ctx.insert(f);
     return ctx.nbr(f0);
 }
 /**
  * @brief The neighbours' value of the argument.
  *
- * Equivalent to `nbr(f, f)`.
+ * Equivalent to `nbr(CALL, f, f)`.
  */
-template <typename node_t, typename A>
-inline nbr_arg<A> nbr(node_t& node, trace_t call_point, A const& f) {
+template <typename node_t, typename E>
+inline nbr_arg<E> nbr(node_t& node, trace_t call_point, E const& f) {
     return nbr(node, call_point, f, f);
+}
+/**
+ * @brief The neighbours' value of the result (defaults to first argument), modified through the second argument (placed version).
+ *
+ * Corresponds to the `exchange` construct of PXC.
+ * The \p op argument may return a `E` or a `tuple<R,E>`, where `E` is
+ * is of the form `placed<tier,T,q,p>`. In the latter case,
+ * the first element of the returned pair is returned by the function, while
+ * the second element of the returned pair is written in the exports.
+ * The \p op argument is assumed to accept an argument of type `placed<tier,T,p,q>`.
+ * The init value `D` should be convertible to `placed<tier,T,p,0>`.
+ */
+template <tier_t tier, typename node_t, typename D, typename G>
+return_result_type<void, G(D)> nbr(std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point, D const& f0, G&& op) {
+    using E = export_result_type<void, G(D)>;
+    static_assert(tier == extract_tier<E>, "the export type E should be of the form placed<tier,...>");
+    using A = typename E::dual_type;
+    auto ctx = node.template nbr_context<typename E::field_type>(call_point);
+    auto f = op(maybe_perform(common::type_sequence<A>{}, [&ctx](auto const& x){
+        return ctx.nbr(x);
+    }, f0));
+    maybe_do(common::type_sequence<E>{}, [&ctx](auto const& x){
+        ctx.insert(x);
+    }, details::maybe_second(common::type_sequence<void>{}, f));
+    return details::maybe_first(common::type_sequence<void>{}, f);
+}
+/**
+ * @brief The neighbours' value of the second argument, defaulting to the first argument (placed version).
+ *
+ * The exported value `E` should be of the form `placed<tier,T,q,p>`,
+ * and the init value should be convertible to `placed<tier,T,p,0>`.
+ * The function returns a value of type `placed<tier,T,p,q>`.
+ *
+ * Equivalent to:
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
+ * nbr(PCALL, f0, [](nbr_arg<E> fn){
+ *     return make_tuple(fn, f);
+ * })
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~
+ */
+template <tier_t tier, typename node_t, typename D, typename E, typename = std::enable_if_t<is_placed<E>>>
+typename E::dual_type nbr(std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point, D const& f0, E const& f) {
+    static_assert(tier == extract_tier<E>, "type E should be of the form placed<tier,T,q,p>");
+    using PD = to_placed<tier, D>;
+    using PE = to_placed<tier, E>;
+    static_assert(bitsubset(PE::q_value, PD::p_value) and PD::q_value == 0, "type D should be convertible to placed<tier,T,p,0>");
+    auto ctx = node.template nbr_context<typename E::field_type>(call_point);
+    maybe_do(common::type_sequence<E>{}, [&ctx](auto const& x){
+        ctx.insert(x);
+    }, f);
+    return maybe_perform(common::type_sequence<typename E::dual_type>{}, [&ctx](auto const& x){
+        return ctx.nbr(x);
+    }, f0);
 }
 
 //! @brief The exports type used by the nbr construct with message type `T`.
