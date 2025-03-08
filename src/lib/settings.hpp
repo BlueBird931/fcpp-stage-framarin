@@ -168,6 +168,14 @@
 #endif
 
 
+#ifndef FCPP_TIER_TAG
+#ifndef FCPP_TIER
+//! @brief Setting defining the tier of the node currently being compiled.
+#define FCPP_TIER 0
+#endif
+#endif
+
+
 #ifndef FCPP_TIERS
 //! @brief Setting defining the maximum number of different tiers of nodes supported.
 #define FCPP_TIERS 8

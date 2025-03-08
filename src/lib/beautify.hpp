@@ -91,36 +91,69 @@ void main::operator()(node_t& node, times_t)
 //! @brief Macro adding placement annotations to a local type.
 #define place(...)      placed<tier, __VA_ARGS__>
 
+#ifdef FCPP_TIER_TAG
 /**
  * @brief Macro for defining a main class with placements to be used in the calculus component. Usage:
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
- * PMAIN(cur_tier, num_tiers) {
+ * PMAIN(num_tiers) {
  *   ...
  * }
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * The code of the main function has access to the `node` object and the current `tier` value.
- * The expression `cur_tier` accesses the tier of the current node (does not have to be a number).
+ * If `FCPP_TIER_TAG` is specified, the current tier of a node is taken from the node storage,
+ * as a property associated with that tag.
+ * Otherwise, the main is compiled with the `FCPP_TIER` value for `tier`.
  */
-#define PMAIN(cur_tier, num_tiers)                  \
+#define PMAIN(num_tiers)                            \
+struct main {                                       \
+    template <typename node_t>                      \
+    inline void operator()(node_t&, times_t);       \
+    template <tier_t t, typename node_t>            \
+    inline void body_rec(node_t&);                  \
+    template <tier_t tier, typename node_t>         \
+    void body(node_t&);                             \
+};                                                  \
+template <typename node_t>                          \
+void main::operator()(node_t& node, times_t) {      \
+    body_rec<0>(node);                              \
+}                                                   \
+template <tier_t t, typename node_t>                \
+void main::body_rec(node_t& node) {                 \
+    if (node.storage(FCPP_TIER_TAG{}) == (1<<t))    \
+        body<(1<<t)>(node);                         \
+    else if (tier+1 < num_tiers)                    \
+        body_rec<tier+1>(node);                     \
+}                                                   \
+template <tier_t tier, typename node_t>             \
+void main::body(node_t& node)
+
+#else
+/**
+ * @brief Macro for defining a main class with placements to be used in the calculus component. Usage:
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
+ * PMAIN(num_tiers) {
+ *   ...
+ * }
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * The code of the main function has access to the `node` object and the current `tier` value.
+ * If `FCPP_TIER_TAG` is specified, the current tier of a node is taken from the node storage,
+ * as a property associated with that tag.
+ * Otherwise, the main is compiled with `1<<FCPP_TIER` as value for `tier`.
+ */
+#define PMAIN(num_tiers)                            \
 struct main {                                       \
     template <typename node_t>                      \
     inline void operator()(node_t&, times_t);       \
     template <tier_t tier, typename node_t>         \
-    inline void body(node_t&);                      \
-    template <tier_t tier, typename node_t>         \
-    void body(node_t&, times_t);                    \
+    void body(node_t&);                             \
 };                                                  \
 template <typename node_t>                          \
 void main::operator()(node_t& node, times_t) {      \
-    body<0>(node);                                  \
+    body<(1<<FCPP_TIER)>(node);                     \
 }                                                   \
 template <tier_t tier, typename node_t>             \
-void main::body(node_t& node) {                     \
-    if (cur_tier == tier) body<(1<<tier)>(node, 0); \
-    else if (tier+1 < num_tiers) body<tier+1>(node);\
-}                                                   \
-template <tier_t tier, typename node_t>             \
-void main::body(node_t& node, times_t)
-//TODO: compiler flags to switch for easier version using a single tier (for deployment)
+void main::body(node_t& node)
+
+#endif
 
 #endif // FCPP_BEAUTIFY_H_

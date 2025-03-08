@@ -1,4 +1,4 @@
-// Copyright © 2023 Giorgio Audrito. All Rights Reserved.
+// Copyright © 2025 Giorgio Audrito. All Rights Reserved.
 
 /**
  * @file storage.hpp
@@ -18,6 +18,12 @@
  * @brief Namespace containing all the objects in the FCPP library.
  */
 namespace fcpp {
+
+
+#ifdef FCPP_TIER_TAG
+//! @brief Tag to access the tier of a node.
+struct FCPP_TIER_TAG {};
+#endif
 
 
 // Namespace for all FCPP components.
@@ -49,11 +55,18 @@ namespace tags {
  */
 template <typename... Ts>
 struct storage {
+    //! @brief The tag and type for storing the tier information (if needed).
+    using tier_store = tags::node_store<
+#ifdef FCPP_TIER_TAG
+        FCPP_TIER_TAG, tier_t
+#endif
+    >;
+
     //! @brief Sequence of tags and types for storing global persistent data.
     using net_store_type = common::storage_list<common::option_types<tags::net_store, Ts...>>;
 
     //! @brief Sequence of tags and types for storing persistent data in nodes.
-    using node_store_type = common::storage_list<common::option_types<tags::node_store, Ts...>>;
+    using node_store_type = common::storage_list<common::option_types<tags::node_store, tier_store, Ts...>>;
 
     /**
      * @brief The actual component.
