@@ -246,9 +246,9 @@ TEST(PlacedTest, Operators) {
 
 TEST(PlacedTest, FoldHood) {
     auto x = details::make_placed<8, double, 12, 2>({1, 2, 3}, {2, 4, 6, 8});
-    auto r1 = details::fold_hood([] (double i, double j) {return i+j;}, x, {0,1,2});
+    auto r1 = details::fold_hood([] (double i, double j) {return i+j;}, x, 7, {0,1,2}, 0);
     EXPECT_SAME(decltype(r1), placed<8, double, 12, 0>);
-    EXPECT_EQ(r1.get_or(999), 12.0);
+    EXPECT_EQ(r1.get_or(999), 17.0);
     auto r2 = details::fold_hood([] (double i, double j) {return i+j;}, x, 5, {0,1,2}, 2);
     EXPECT_SAME(decltype(r2), placed<8, double, 12, 0>);
     EXPECT_EQ(r2.get_or(999), 11.0);

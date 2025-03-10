@@ -43,6 +43,9 @@ namespace tags {
     template <typename T>
     struct clock_type {};
 
+    //! @brief Node initialisation tag associating to the tier of the current node (optional).
+    struct node_tier {};
+
     //! @brief Node initialisation tag associating to a `device_t` unique identifier (required).
     struct uid {};
 }

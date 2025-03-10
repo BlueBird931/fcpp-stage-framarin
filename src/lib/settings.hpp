@@ -1,4 +1,4 @@
-// Copyright © 2024 Giorgio Audrito. All Rights Reserved.
+// Copyright © 2025 Giorgio Audrito. All Rights Reserved.
 
 /**
  * @file settings.hpp
@@ -168,17 +168,33 @@
 #endif
 
 
-#ifndef FCPP_TIER_TAG
+//! @brief Identifier for systems with no different placement tiers.
+#define FCPP_TIERS_DISABLED 11111
+//! @brief Identifier for systems with a placement tier specified during compilation through @ref FCPP_TIER.
+#define FCPP_TIERS_FIXED    22222
+//! @brief Identifier for systems with a placement tier as a storage constant.
+#define FCPP_TIERS_VARIABLE 33333
+
+#ifndef FCPP_TIERS
+    #ifdef FCPP_TIER
+        //! @brief Setting defining how placement tiers are handles: @ref FCPP_TIERS_DISABLED (general default) or @ref FCPP_TIERS_FIXED (default if @ref FCPP_TIER is defined) or @ref FCPP_TIERS_VARIABLE.
+        #define FCPP_TIERS FCPP_TIERS_FIXED
+    #else
+        //! @brief Setting defining how placement tiers are handles: @ref FCPP_TIERS_DISABLED (general default) or @ref FCPP_TIERS_FIXED (default if @ref FCPP_TIER is defined) or @ref FCPP_TIERS_VARIABLE.
+        #define FCPP_TIERS FCPP_TIERS_DISABLED
+    #endif
+#endif
+
+
 #ifndef FCPP_TIER
 //! @brief Setting defining the tier of the node currently being compiled.
 #define FCPP_TIER 0
 #endif
-#endif
 
 
-#ifndef FCPP_TIERS
+#ifndef FCPP_TIERS_MAX
 //! @brief Setting defining the maximum number of different tiers of nodes supported.
-#define FCPP_TIERS 8
+#define FCPP_TIERS_MAX 8
 #endif
 
 
@@ -292,8 +308,8 @@ namespace fcpp {
     //! @brief Type for hop counts (depends on @ref FCPP_HOPS).
     using hops_t = intn_t<FCPP_HOPS>;
 
-    //! @brief Type for tiers (peer types, depends on @ref FCPP_TIERS).
-    using tier_t = uintn_t<FCPP_TIERS>;
+    //! @brief Type for tiers (peer types, depends on @ref FCPP_TIERS_MAX).
+    using tier_t = uintn_t<FCPP_TIERS_MAX>;
 }
 
 

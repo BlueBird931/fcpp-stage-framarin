@@ -420,10 +420,10 @@ namespace details {
     }
 
     //! @brief Applies a void function on a sequence of placed fields (empty overload).
-    template <typename T, typename... Ts>
+    template <typename... Ts>
     inline void maybe_do(std::false_type, Ts&&...) {}
     //! @brief Applies a void function on a sequence of placed fields (active overload).
-    template <typename T, typename F, typename... Ts>
+    template <typename F, typename... Ts>
     inline void maybe_do(std::true_type, F&& op, Ts&&... xs) {
         std::forward<F>(op)(maybe_get_data(std::forward<Ts>(xs))...);
     }
@@ -489,7 +489,6 @@ auto pmap_hood(F&& op, Ts const&... xs) {
     using P = to_placed<tier, tuple<Ts const&...>>;
     return details::pmap_hood(common::number_sequence<tier>{}, P{}, common::type_sequence<typename P::value_type>{}, op, xs...);
 }
-// TODO: pmap_hood for tuples of placed
 // TODO: rename to map_hood while avoiding conflicts with that in field.hpp
 
 
@@ -499,21 +498,9 @@ namespace details {
     template <tier_t tier, typename F, typename A, typename B, tier_t p>
     using fold_result = placed<tier, std::result_of_t<F(A const&, B const&)>, p, 0>;
 
-    /**
-     * @name fold_hood
-     *
-     * Reduces the values in a part of a placed field (determined by domain) to a single value through a binary operation.
-     */
     //! @{
-    //! @brief Inclusive folding.
-    template <typename F, tier_t tier, typename A, tier_t p, tier_t q>
-    inline fold_result<tier, F, A, A, p>
-    fold_hood(F&& op, placed<tier,A,p,q> const& f, std::vector<device_t> const& dom) {
-        return maybe_perform(common::type_sequence<fold_result<tier, F, A, A, p>>{}, [&op, &dom](auto const& x){
-            return fold_hood(op, x, dom);
-        }, f);
-    }
     //! @brief Exclusive folding.
+    //! Reduces the values in a part of a placed field (determined by domain) to a single value through a binary operation.
     template <typename F, tier_t tier, typename A, tier_t p, tier_t q, typename B>
     inline fold_result<tier, F, A, B, p>
     fold_hood(F&& op, placed<tier,A,p,q> const& f, B const& b, std::vector<device_t> const& dom, device_t i) {
@@ -521,8 +508,6 @@ namespace details {
             return fold_hood(op, x, b, dom, i);
         }, f);
     }
-    // TODO: fold for tuples of placed
-    //! @}
 
     //! @brief Performs the domain union of multiple placed fields (no arguments).
     template <typename R>

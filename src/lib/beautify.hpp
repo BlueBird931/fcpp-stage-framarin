@@ -1,4 +1,4 @@
-// Copyright © 2021 Giorgio Audrito. All Rights Reserved.
+// Copyright © 2025 Giorgio Audrito. All Rights Reserved.
 
 /**
  * @file beautify.hpp
@@ -91,20 +91,20 @@ void main::operator()(node_t& node, times_t)
 //! @brief Macro adding placement annotations to a local type.
 #define place(...)      placed<tier, __VA_ARGS__>
 
-#ifdef FCPP_TIER_TAG
+#if FCPP_TIERS == FCPP_TIERS_VARIABLE
 /**
  * @brief Macro for defining a main class with placements to be used in the calculus component. Usage:
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
- * PMAIN(num_tiers) {
+ * PMAIN() {
  *   ...
  * }
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * The code of the main function has access to the `node` object and the current `tier` value.
- * If `FCPP_TIER_TAG` is specified, the current tier of a node is taken from the node storage,
- * as a property associated with that tag.
- * Otherwise, the main is compiled with the `FCPP_TIER` value for `tier`.
+ * If @ref FCPP_TIERS is @ref FCPP_TIERS_VARIABLE , the current tier of a node is taken from the node storage,
+ * as a property associated with @ref fcpp::component::tags::node_tier .
+ * Otherwise, the main is compiled with the `FCPP_TIER` defining the value for `tier`.
  */
-#define PMAIN(num_tiers)                            \
+#define PMAIN()                                     \
 struct main {                                       \
     template <typename node_t>                      \
     inline void operator()(node_t&, times_t);       \
@@ -121,7 +121,7 @@ template <tier_t t, typename node_t>                \
 void main::body_rec(node_t& node) {                 \
     if (node.storage(FCPP_TIER_TAG{}) == (1<<t))    \
         body<(1<<t)>(node);                         \
-    else if (tier+1 < num_tiers)                    \
+    else if (tier+1 < FCPP_TIERS_MAX)               \
         body_rec<tier+1>(node);                     \
 }                                                   \
 template <tier_t tier, typename node_t>             \
@@ -131,16 +131,16 @@ void main::body(node_t& node)
 /**
  * @brief Macro for defining a main class with placements to be used in the calculus component. Usage:
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
- * PMAIN(num_tiers) {
+ * PMAIN() {
  *   ...
  * }
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * The code of the main function has access to the `node` object and the current `tier` value.
- * If `FCPP_TIER_TAG` is specified, the current tier of a node is taken from the node storage,
- * as a property associated with that tag.
- * Otherwise, the main is compiled with `1<<FCPP_TIER` as value for `tier`.
+ * If @ref FCPP_TIERS is @ref FCPP_TIERS_VARIABLE , the current tier of a node is taken from the node storage,
+ * as a property associated with @ref fcpp::component::tags::node_tier .
+ * Otherwise, the main is compiled with the `FCPP_TIER` defining the value for `tier`.
  */
-#define PMAIN(num_tiers)                            \
+#define PMAIN()                                     \
 struct main {                                       \
     template <typename node_t>                      \
     inline void operator()(node_t&, times_t);       \

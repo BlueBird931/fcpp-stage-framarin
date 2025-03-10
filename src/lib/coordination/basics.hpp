@@ -1,4 +1,4 @@
-// Copyright © 2023 Giorgio Audrito. All Rights Reserved.
+// Copyright © 2025 Giorgio Audrito. All Rights Reserved.
 
 /**
  * @file basics.hpp
@@ -90,6 +90,7 @@ inline A align(node_t const&, trace_t, A&& x) {
 template <typename node_t, typename A, typename = if_field<A>>
 A align(node_t& node, trace_t call_point, A const& x) {
     auto ctx = node.void_context(call_point);
+    ctx.insert();
     return fcpp::details::align(x, ctx.align());
 }
 
@@ -97,6 +98,7 @@ A align(node_t& node, trace_t call_point, A const& x) {
 template <typename node_t, typename A, typename = if_field<A>, typename = std::enable_if_t<not std::is_reference<A>::value>>
 A align(node_t& node, trace_t call_point, A&& x) {
     auto ctx = node.void_context(call_point);
+    ctx.insert();
     return fcpp::details::align(std::move(x), ctx.align());
 }
 
@@ -108,6 +110,7 @@ inline void align_inplace(node_t const&, trace_t, A&) {}
 template <typename node_t, typename A, typename = if_field<A>>
 void align_inplace(node_t& node, trace_t call_point, A& x) {
     auto ctx = node.void_context(call_point);
+    ctx.insert();
     fcpp::details::align(x, ctx.align());
 }
 
@@ -163,6 +166,7 @@ to_local<A&&> other(node_t const&, trace_t, A&& x) {
 template <typename node_t, typename A, typename = if_field<A>>
 to_local<A&> mod_other(node_t& node, trace_t call_point, A& x) {
     auto ctx = node.void_context(call_point);
+    ctx.insert();
     return fcpp::details::other(fcpp::details::align_inplace(x, ctx.align()));
 }
 
@@ -170,9 +174,12 @@ to_local<A&> mod_other(node_t& node, trace_t call_point, A& x) {
 template <typename node_t, typename A, typename B>
 to_field<std::decay_t<A>> mod_other(node_t& node, trace_t call_point, A const& x, B const& y) {
     auto ctx = node.void_context(call_point);
+    ctx.insert();
     return fcpp::details::mod_other(x, y, ctx.align());
 }
 
+//! @name folding operators
+//! @{
 /**
  * @brief Reduces a field to a single value by a binary operation.
  *
@@ -191,6 +198,7 @@ to_field<std::decay_t<A>> mod_other(node_t& node, trace_t call_point, A const& x
 template <typename node_t, typename O, typename A>
 auto fold_hood(node_t& node, trace_t call_point, O&& op, A const& a) {
     auto ctx = node.void_context(call_point);
+    ctx.insert();
     return fcpp::details::fold_hood(op, a, ctx.align());
 }
 
@@ -213,13 +221,45 @@ auto fold_hood(node_t& node, trace_t call_point, O&& op, A const& a) {
 template <typename node_t, typename O, typename A, typename B>
 auto fold_hood(node_t& node, trace_t call_point, O&& op, A const& a, B const& b) {
     auto ctx = node.void_context(call_point);
+    ctx.insert();
     return fcpp::details::fold_hood(op, a, b, ctx.align(), node.uid);
 }
+
+/**
+ * @brief Reduces a field to a single value by a binary operation with a given value for self (placed version).
+ *
+ * It only folds values for neighbours in placement `q`.
+ *
+ * The folding operation \p op has to have two arguments, of type
+ * `A` and `B`, with the first being the new value to be
+ * aggregated and the second being the current accumulated value.
+ *
+ * The folding operation **may** also have a first `device_t` argument,
+ * in which it will receive the id of the device that is currently being
+ * added to the aggregation.
+ *
+ * The folding operation is applied following the order of device ids.
+ * The accumulate starts from the value of argument \p b, and the
+ * operation is applied with values from all ids except for the
+ * self id in increasing order.
+*/
+template <tier_t tier, typename node_t, typename O, typename A, tier_t p, tier_t q, typename B>
+placed<tier,A,p,0> fold_hood(std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point, O&& op, placed<tier,A,p,q> const& a, B const& b) {
+    auto ctx = node.void_context(call_point);
+    fcpp::details::maybe_do(common::type_sequence<placed<tier,A,q,0>>{}, [&ctx](){
+        ctx.insert();
+    });
+    return fcpp::details::maybe_perform(common::type_sequence<placed<tier,A,p,0>>{}, [&ctx, &op, &node](auto const& x, auto const& y){
+        return fcpp::details::fold_hood(op, x, y, ctx.align(q), node.uid);
+    }, a, b);
+}
+//! @}
 
 //! @brief Computes the number of neighbours aligned to the current call point.
 template <typename node_t>
 size_t count_hood(node_t& node, trace_t call_point) {
     auto ctx = node.void_context(call_point);
+    ctx.insert();
     return ctx.align().size();
 }
 
@@ -227,6 +267,7 @@ size_t count_hood(node_t& node, trace_t call_point) {
 template <typename node_t>
 field<device_t> nbr_uid(node_t& node, trace_t call_point) {
     auto ctx = node.void_context(call_point);
+    ctx.insert();
     std::vector<device_t> ids = ctx.align();
     std::vector<device_t> vals;
     vals.emplace_back();
@@ -396,10 +437,10 @@ return_result_type<void, G(D)> nbr(std::integer_sequence<tier_t, tier>, node_t& 
     static_assert(tier == extract_tier<E>, "the export type E should be of the form placed<tier,...>");
     using A = typename E::dual_type;
     auto ctx = node.template nbr_context<typename E::field_type>(call_point);
-    auto f = op(maybe_perform(common::type_sequence<A>{}, [&ctx](auto const& x){
+    auto f = op(fcpp::details::maybe_perform(common::type_sequence<A>{}, [&ctx](auto const& x){
         return ctx.nbr(x);
     }, f0));
-    maybe_do(common::type_sequence<E>{}, [&ctx](auto const& x){
+    fcpp::details::maybe_do(common::type_sequence<E>{}, [&ctx](auto const& x){
         ctx.insert(x);
     }, details::maybe_second(common::type_sequence<void>{}, f));
     return details::maybe_first(common::type_sequence<void>{}, f);
@@ -408,12 +449,12 @@ return_result_type<void, G(D)> nbr(std::integer_sequence<tier_t, tier>, node_t& 
  * @brief The neighbours' value of the second argument, defaulting to the first argument (placed version).
  *
  * The exported value `E` should be of the form `placed<tier,T,q,p>`,
- * and the init value should be convertible to `placed<tier,T,p,0>`.
+ * and the init value `D` should be convertible to `placed<tier,T,p,0>`.
  * The function returns a value of type `placed<tier,T,p,q>`.
  *
  * Equivalent to:
  * ~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
- * nbr(PCALL, f0, [](nbr_arg<E> fn){
+ * nbr(PCALL, f0, [](E::dual_type fn){
  *     return make_tuple(fn, f);
  * })
  * ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -425,10 +466,10 @@ typename E::dual_type nbr(std::integer_sequence<tier_t, tier>, node_t& node, tra
     using PE = to_placed<tier, E>;
     static_assert(bitsubset(PE::q_value, PD::p_value) and PD::q_value == 0, "type D should be convertible to placed<tier,T,p,0>");
     auto ctx = node.template nbr_context<typename E::field_type>(call_point);
-    maybe_do(common::type_sequence<E>{}, [&ctx](auto const& x){
+    fcpp::details::maybe_do(common::type_sequence<E>{}, [&ctx](auto const& x){
         ctx.insert(x);
     }, f);
-    return maybe_perform(common::type_sequence<typename E::dual_type>{}, [&ctx](auto const& x){
+    return fcpp::details::maybe_perform(common::type_sequence<typename E::dual_type>{}, [&ctx](auto const& x){
         return ctx.nbr(x);
     }, f0);
 }

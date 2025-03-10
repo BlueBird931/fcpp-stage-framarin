@@ -1,4 +1,4 @@
-// Copyright © 2023 Giorgio Audrito. All Rights Reserved.
+// Copyright © 2025 Giorgio Audrito. All Rights Reserved.
 
 /**
  * @file calculus.hpp
@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "lib/common/option.hpp"
 #include "lib/common/serialize.hpp"
 #include "lib/internal/context.hpp"
 #include "lib/internal/trace.hpp"
@@ -153,6 +154,9 @@ struct calculus {
     //! @brief Whether messages are dropped as they arrive.
     constexpr static bool online_drop = common::option_flag<tags::online_drop, FCPP_ONLINE_DROP, Ts...>;
 
+    //! @brief Whether placements are supported or disabled.
+    constexpr static bool enable_tiers = FCPP_TIERS != FCPP_TIERS_DISABLED;
+
     /**
      * @brief The actual component.
      *
@@ -245,10 +249,19 @@ struct calculus {
 
             //! @brief Helper type providing access to the context for neighbour call points.
             struct void_context_type {
+                //! @brief Inserts the call point for alignment.
+                inline void insert() {
+                    n.m_export.second()->insert(t);
+                }
+
                 //! @brief Accesses the list of devices aligned with the call point.
                 inline std::vector<device_t> align() {
-                    n.m_export.second()->insert(t);
                     return n.m_context.second().align(t, n.uid);
+                }
+
+                //! @brief Accesses the list of devices aligned with the call point and in a given placement.
+                inline std::vector<device_t> align(tier_t p) {
+                    return n.m_context.second().align(t, n.uid, p, n.nbr_tier());
                 }
 
               private:
@@ -288,7 +301,11 @@ struct calculus {
             };
 
             //! @brief A `tagged_tuple` type used for messages to be exchanged with neighbours.
-            using message_t = typename P::node::message_t::template push_back<calculus_tag, export_type>;
+            using message_t = typename P::node::message_t::template push_back<calculus_tag, export_type>
+#if FCPP_TIERS != FCPP_TIERS_DISABLED
+                ::template push_back<tags::node_tier, tier_t>
+#endif
+            ;
 
             /**
              * @brief Main constructor.
@@ -297,7 +314,7 @@ struct calculus {
              * @param t A `tagged_tuple` gathering initialisation values.
              */
             template <typename S, typename T>
-            node(typename F::net& n, common::tagged_tuple<S,T> const& t) : P::node(n,t), m_context{}, m_metric{t}, m_hoodsize{common::get_or<tags::hoodsize>(t, std::numeric_limits<device_t>::max())}, m_threshold{common::get_or<tags::threshold>(t, m_metric.build())} {}
+            node(typename F::net& n, common::tagged_tuple<S,T> const& t) : P::node(n,t), m_context{}, m_metric{t}, m_hoodsize{common::get_or<tags::hoodsize>(t, std::numeric_limits<device_t>::max())}, m_threshold{common::get_or<tags::threshold>(t, m_metric.build())}, m_nbr_tier{0} {}
 
             //! @brief Performs computations at round start with current time `t`.
             void round_start(times_t t) {
@@ -310,6 +327,7 @@ struct calculus {
                 nbr_vals.emplace_back();
                 nbr_vals.insert(nbr_vals.end(), nbr_ids.begin(), nbr_ids.end());
                 m_nbr_uid = fcpp::details::make_field(std::move(nbr_ids), std::move(nbr_vals));
+                maybe_set_tiers(P::node::uid, tier());
             }
 
             //! @brief Performs computations at round middle with current time `t`.
@@ -332,6 +350,7 @@ struct calculus {
                 m_context.second().insert(d, common::get<calculus_tag>(m), m_metric.build(P::node::as_final(), t, d, m), m_threshold, m_hoodsize);
                 if (export_split and d == P::node::uid)
                     m_context.first().insert(d, m_export.first(), m_metric.build(P::node::as_final(), t, d, m), m_threshold, m_hoodsize);
+                maybe_set_tiers(d, common::get_or<tags::node_tier>(m, FCPP_TIER));
             }
 
             //! @brief Produces the message to send, both storing it in its argument and returning it.
@@ -339,6 +358,9 @@ struct calculus {
             common::tagged_tuple<S,T>& send(times_t t, common::tagged_tuple<S,T>& m) const {
                 P::node::send(t, m);
                 common::get<calculus_tag>(m) = m_export.second();
+#if FCPP_TIERS != FCPP_TIERS_DISABLED
+                common::get<tags::node_tier>(m) = tier();
+#endif
                 return m;
             }
 
@@ -357,6 +379,20 @@ struct calculus {
             //! @brief Identifiers of the neighbours.
             field<device_t> const& nbr_uid() const {
                 return m_nbr_uid;
+            }
+
+            //! @brief Placement tiers of the neighbours.
+            field<tier_t> const& nbr_tier() const {
+                return m_nbr_tier.front();
+            }
+
+            //! @brief Placement tier of the node.
+            tier_t tier() const {
+#if FCPP_TIERS == FCPP_TIERS_VARIABLE
+                    return P::node::as_final().storage(tags::node_tier{});
+#else
+                    return FCPP_TIER;
+#endif
             }
 
             //! @brief Accesses the threshold for message retain.
@@ -395,6 +431,13 @@ struct calculus {
             internal::trace stack_trace;
 
           private: // implementation details
+            //! @brief Stores the tier information `t` for neighbour `d` (active overload).
+            inline void maybe_set_tiers(device_t d, tier_t t) {
+#if FCPP_TIERS != FCPP_TIERS_DISABLED
+                fcpp::details::self(m_nbr_tier.front(), d) = t;
+#endif
+            }
+
             //! @brief Map associating devices to their exports (`first` for local device, `second` for others).
             internal::twin<context_type, not export_split> m_context;
 
@@ -415,6 +458,9 @@ struct calculus {
 
             //! @brief Identifiers of the neighbours.
             field<device_t> m_nbr_uid;
+
+            //! @brief Placement tiers of the neighbours.
+            common::option<field<tier_t>, enable_tiers> m_nbr_tier;
         };
 
         //! @brief The global part of the component.

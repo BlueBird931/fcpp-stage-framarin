@@ -18,6 +18,8 @@ cc_library(
     hdrs = ['calculus.hpp'],
     srcs = ['calculus.cpp'],
     deps = [
+        "//lib/common:option",
+        "//lib/common:serialize",
         "//lib/component:base",
         "//lib/internal:context",
         "//lib/internal:trace",

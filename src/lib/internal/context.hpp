@@ -185,6 +185,29 @@ class context<true, pointer, M, Ts...> {
         return v;
     }
 
+    //! @brief Returns list of devices with specified trace and placement.
+    std::vector<device_t> align(trace_t trace, device_t self, tier_t p, field<tier_t> const& nbr_tier) const {
+        assert(m_sorted_data.size() == m_data.size());
+        std::vector<device_t> v;
+        fcpp::details::field_iterator<field<tier_t> const> fit(nbr_tier);
+        auto it = m_sorted_data.begin();
+        for (; it != m_sorted_data.end() and it->first < self; ++it) {
+            while (fit.id() < it->first) ++fit;
+            if (fit.value(it->first) & p and (*(it->second))->contains(trace)) {
+                v.push_back(it->first);
+            }
+        }
+        v.push_back(self);
+        if (it != m_sorted_data.end() and it->first == self) ++it;
+        for (; it != m_sorted_data.end(); ++it) {
+            while (fit.id() < it->first) ++fit;
+            if (fit.value(it->first) & p and (*(it->second))->contains(trace)) {
+                v.push_back(it->first);
+            }
+        }
+        return v;
+    }
+
     //! @brief Returns the old value for a certain trace (unaligned).
     template <typename A>
     A const& old(trace_t trace, A const& def, device_t self) const {
@@ -373,6 +396,27 @@ class context<false, pointer, M, Ts...> {
         for (; i < m_data.size(); ++i)
             if (get<2>(m_data[i])->contains(trace))
                 v.push_back(get<0>(m_data[i]));
+        return v;
+    }
+
+    //! @brief Returns list of devices with specified trace and placement.
+    std::vector<device_t> align(trace_t trace, device_t self, tier_t p, field<tier_t> const& nbr_tier) const {
+        fcpp::details::field_iterator<field<tier_t> const> fit(nbr_tier);
+        std::vector<device_t> v;
+        size_t i = 0;
+        for (; i < m_self; ++i) {
+            while (fit.id() < get<0>(m_data[i])) ++fit;
+            if (fit.value(get<0>(m_data[i])) & p and get<2>(m_data[i])->contains(trace))
+                v.push_back(get<0>(m_data[i]));
+        }
+        while (fit.id() < self) ++fit;
+        v.push_back(self);
+        if (i < m_data.size() and get<0>(m_data[i]) == self) ++i;
+        for (; i < m_data.size(); ++i) {
+            while (fit.id() < get<0>(m_data[i])) ++fit;
+            if (fit.value(get<0>(m_data[i])) & p and get<2>(m_data[i])->contains(trace))
+                v.push_back(get<0>(m_data[i]));
+        }
         return v;
     }
 

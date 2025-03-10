@@ -20,12 +20,6 @@
 namespace fcpp {
 
 
-#ifdef FCPP_TIER_TAG
-//! @brief Tag to access the tier of a node.
-struct FCPP_TIER_TAG {};
-#endif
-
-
 // Namespace for all FCPP components.
 namespace component {
 
@@ -57,8 +51,8 @@ template <typename... Ts>
 struct storage {
     //! @brief The tag and type for storing the tier information (if needed).
     using tier_store = tags::node_store<
-#ifdef FCPP_TIER_TAG
-        FCPP_TIER_TAG, tier_t
+#if FCPP_TIERS == FCPP_TIERS_VARIABLE
+        tags::node_tier, tier_t
 #endif
     >;
 

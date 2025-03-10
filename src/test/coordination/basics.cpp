@@ -1,9 +1,12 @@
-// Copyright © 2023 Giorgio Audrito. All Rights Reserved.
+// Copyright © 2025 Giorgio Audrito. All Rights Reserved.
 
 #include "gtest/gtest.h"
 
+#define FCPP_TIERS FCPP_TIERS_VARIABLE
+
 #include "lib/component/base.hpp"
 #include "lib/component/calculus.hpp"
+#include "lib/component/storage.hpp"
 #include "lib/coordination/basics.hpp"
 
 #include "test/test_net.hpp"
@@ -24,7 +27,7 @@ DECLARE_OPTIONS(options,
     online_drop<(O & 4) == 4>
 );
 
-DECLARE_COMBINE(calc_only, component::calculus);
+DECLARE_COMBINE(calc_only, component::storage, component::calculus);
 
 template <int O>
 using combo = calc_only<options<O>>;
@@ -250,6 +253,64 @@ MULTI_TEST(BasicsTest, Nbr, O, 3) {
     EXPECT_EQ(2, d);
     d = gossip2(d2, 2, 1);
     EXPECT_EQ(4, d);
+}
+
+template <tier_t tier, typename node_t, typename D, typename E>
+auto sharing(std::integer_sequence<tier_t, tier> t, node_t& node, trace_t call_point, D init, E val) {
+    internal::trace_call trace_caller(node.stack_trace, call_point);
+    return coordination::fold_hood(t, node, 0, [](int x, int y) {
+        return x+y;
+    }, coordination::nbr(t, node, 1, init, val), 0);
+}
+
+template <tier_t t>
+using p10 = placed<t,int,1,0>;
+template <tier_t t>
+using p20 = placed<t,int,2,0>;
+template <tier_t t>
+using p11 = placed<t,int,1,1>;
+template <tier_t t>
+using p31 = placed<t,int,3,1>;
+template <tier_t t>
+using p12 = placed<t,int,1,2>;
+
+#define EXPECT_ID(a, b) {                           \
+    auto res = a;                                   \
+    auto exp = b;                                   \
+    EXPECT_SAME(decltype(res), decltype(exp));      \
+    EXPECT_EQ(res.get_or(-999), exp.get_or(-999));  \
+}
+
+MULTI_TEST(BasicsTest, PlacedNbr, O, 3) {
+    std::integer_sequence<tier_t, 1> t1;
+    std::integer_sequence<tier_t, 2> t2;
+    typename combo<O>::net  network{common::make_tagged_tuple<>()};
+    typename combo<O>::node d0{network, common::make_tagged_tuple<uid,node_tier>(0,1)};
+    typename combo<O>::node d1{network, common::make_tagged_tuple<uid,node_tier>(1,1)};
+    typename combo<O>::node d2{network, common::make_tagged_tuple<uid,node_tier>(2,2)};
+    int d;
+    d0.round_start(0);
+    d1.round_start(0);
+    d2.round_start(0);
+    EXPECT_ID(sharing(t1, d0, 0, -1, p11<1>(4) ), p10<1>(0));
+    EXPECT_ID(sharing(t1, d1, 0, -1, p11<1>(2) ), p10<1>(0));
+    EXPECT_ID(sharing(t2, d2, 0, -1, p11<2>(1) ), p10<2>(9));
+    EXPECT_ID(sharing(t1, d0, 1, -2, p31<1>(8) ), p10<1>(0));
+    EXPECT_ID(sharing(t1, d1, 1, -2, p31<1>(16)), p10<1>(0));
+    EXPECT_ID(sharing(t2, d2, 1, -2, p31<2>(32)), p10<2>(9));
+    EXPECT_ID(sharing(t1, d0, 2, -3, p12<1>(2) ), p20<1>(9));
+    EXPECT_ID(sharing(t1, d1, 2, -3, p12<1>(4) ), p20<1>(9));
+    EXPECT_ID(sharing(t2, d2, 2, -3, p12<2>(8) ), p20<2>(0));
+    sendall(d0, d1, d2);
+    EXPECT_ID(sharing(t1, d0, 0, -1, p11<1>(4) ), p10<1>(2));
+    EXPECT_ID(sharing(t1, d1, 0, -1, p11<1>(2) ), p10<1>(4));
+    EXPECT_ID(sharing(t2, d2, 0, -1, p11<2>(1) ), p10<2>(-9));
+    EXPECT_ID(sharing(t1, d0, 1, -2, p31<1>(8) ), p10<1>(48));
+    EXPECT_ID(sharing(t1, d1, 1, -2, p31<1>(16)), p10<1>(40));
+    EXPECT_ID(sharing(t2, d2, 1, -2, p31<2>(32)), p10<2>(-9));
+    EXPECT_ID(sharing(t1, d0, 2, -3, p12<1>(2) ), p20<1>(9));
+    EXPECT_ID(sharing(t1, d1, 2, -3, p12<1>(4) ), p20<1>(9));
+    EXPECT_ID(sharing(t2, d2, 2, -3, p12<2>(8) ), p20<2>(6));
 }
 
 template <typename node_t>
