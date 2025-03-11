@@ -383,8 +383,8 @@ template <typename node_t, typename D, typename G>
 return_result_type<D, G(D)> old(node_t& node, trace_t call_point, D const& f0, G&& op) {
     using A = export_result_type<D, G(D)>;
     auto ctx = node.template self_context<A>(call_point);
-    auto f = op(align(node, call_point, ctx.old(f0)));
-    ctx.insert(details::maybe_second(common::type_sequence<D>{}, f));
+    auto f = op(ctx.old(f0));
+    ctx.insert(align(node, call_point, details::maybe_second(common::type_sequence<D>{}, f)));
     return details::maybe_first(common::type_sequence<D>{}, f);
 }
 /**
@@ -400,8 +400,8 @@ return_result_type<D, G(D)> old(node_t& node, trace_t call_point, D const& f0, G
 template <typename node_t, typename D, typename A, typename = std::enable_if_t<std::is_convertible<D, A>::value>>
 A old(node_t& node, trace_t call_point, D const& f0, A const& f) {
     auto ctx = node.template self_context<A>(call_point);
-    ctx.insert(f);
-    return align(node, call_point, ctx.old(f0));
+    ctx.insert(align(node, call_point, f));
+    return ctx.old(f0);
 }
 /**
  * @brief The previous-round value of the argument.
@@ -581,8 +581,8 @@ template <typename node_t, typename D, typename G>
 return_result_type<D, G(D, nbr_arg<D>)> oldnbr(node_t& node, trace_t call_point, D const& f0, G&& op) {
     using A = export_result_type<D, G(D, nbr_arg<D>)>;
     auto ctx = node.template nbr_context<A>(call_point);
-    auto f = op(align(node, call_point, ctx.old(f0)), ctx.nbr(f0));
-    ctx.insert(details::maybe_second(common::type_sequence<D>{}, f));
+    auto f = op(ctx.old(f0), ctx.nbr(f0));
+    ctx.insert(align(node, call_point, details::maybe_second(common::type_sequence<D>{}, f)));
     return details::maybe_first(common::type_sequence<D>{}, f);
 }
 
