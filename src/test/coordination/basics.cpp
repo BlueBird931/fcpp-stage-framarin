@@ -275,6 +275,18 @@ auto gossip(std::integer_sequence<tier_t, tier> t, node_t& node, trace_t call_po
     });
 }
 
+template <tier_t tier, typename node_t, tier_t s, tier_t p>
+auto gossip2(std::integer_sequence<tier_t, tier> t, node_t& node, trace_t call_point, placed<tier,int,s,p> val) {
+    internal::trace_call trace_caller(node.stack_trace, call_point);
+    constexpr tier_t q = s|p;
+    return coordination::nbr(t, node, 0, 0, [&](placed<tier,int,p,q> n) {
+        placed<tier,int,p,0> m = coordination::fold_hood(t, node, 1, [](int x, int y) {
+            return std::max(x,y);
+        }, n, coordination::self(t, node, 0, n));
+        return make_tuple(m, get_or(m, val));
+    });
+}
+
 template <tier_t t>
 using p10 = placed<t,int,1,0>;
 template <tier_t t>
@@ -342,6 +354,19 @@ MULTI_TEST(BasicsTest, PlacedNbr, O, 3) {
     EXPECT_ID(gossip(t1, d1, 4, p21<1>(2)), p31<1>(3));
     EXPECT_ID(gossip(t2, d2, 4, p21<2>(3)), p31<2>(3));
     sendall(d0, d1, d2);
+    EXPECT_ID(gossip2(t1, d0, 5, p12<1>(1)), p20<1>(9));
+    EXPECT_ID(gossip2(t1, d1, 5, p12<1>(2)), p20<1>(9));
+    EXPECT_ID(gossip2(t2, d2, 5, p12<2>(3)), p20<2>(0));
+    EXPECT_ID(gossip2(t1, d0, 6, p21<1>(1)), p10<1>(0));
+    EXPECT_ID(gossip2(t1, d1, 6, p21<1>(2)), p10<1>(0));
+    EXPECT_ID(gossip2(t2, d2, 6, p21<2>(3)), p10<2>(9));
+    sendall(d0, d1, d2);
+    EXPECT_ID(gossip2(t1, d0, 5, p12<1>(1)), p20<1>(9));
+    EXPECT_ID(gossip2(t1, d1, 5, p12<1>(2)), p20<1>(9));
+    EXPECT_ID(gossip2(t2, d2, 5, p12<2>(3)), p20<2>(2));
+    EXPECT_ID(gossip2(t1, d0, 6, p21<1>(1)), p10<1>(3));
+    EXPECT_ID(gossip2(t1, d1, 6, p21<1>(2)), p10<1>(3));
+    EXPECT_ID(gossip2(t2, d2, 6, p21<2>(3)), p10<2>(9));
 }
 
 template <typename node_t>
