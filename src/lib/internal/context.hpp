@@ -197,7 +197,8 @@ class context<true, pointer, M, Ts...> {
                 v.push_back(it->first);
             }
         }
-        v.push_back(self);
+        while (fit.id() < self) ++fit;
+        if (fit.value(self) & p) v.push_back(self);
         if (it != m_sorted_data.end() and it->first == self) ++it;
         for (; it != m_sorted_data.end(); ++it) {
             while (fit.id() < it->first) ++fit;
@@ -410,7 +411,7 @@ class context<false, pointer, M, Ts...> {
                 v.push_back(get<0>(m_data[i]));
         }
         while (fit.id() < self) ++fit;
-        v.push_back(self);
+        if (fit.value(self) & p) v.push_back(self);
         if (i < m_data.size() and get<0>(m_data[i]) == self) ++i;
         for (; i < m_data.size(); ++i) {
             while (fit.id() < get<0>(m_data[i])) ++fit;

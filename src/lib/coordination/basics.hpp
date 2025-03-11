@@ -102,6 +102,36 @@ A align(node_t& node, trace_t call_point, A&& x) {
     return fcpp::details::align(std::move(x), ctx.align());
 }
 
+//! @brief Computes the restriction of a local to the current domain (placed version).
+template <tier_t tier, typename node_t, typename A, typename = std::enable_if_t<not is_placed<A>>>
+A align(std::integer_sequence<tier_t, tier>, node_t&, trace_t, A&& x) {
+    return x;
+}
+
+//! @brief Computes the restriction of a placed field to the current domain.
+template <tier_t tier, typename node_t, typename A, tier_t p, tier_t q>
+placed<tier,A,p,q> align(std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point, placed<tier,A,p,q> const& x) {
+    auto ctx = node.void_context(call_point);
+    fcpp::details::maybe_do(common::type_sequence<placed<tier,A,q,0>>{}, [&ctx](){
+        ctx.insert();
+    });
+    return fcpp::details::maybe_perform(common::type_sequence<placed<tier,A,p,q>>{}, [&ctx](auto const& y){
+        return fcpp::details::align(y, ctx.align(q));
+    }, x);
+}
+
+//! @brief Computes the restriction of a placed field to the current domain (moving).
+template <tier_t tier, typename node_t, typename A, tier_t p, tier_t q>
+placed<tier,A,p,q> align(std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point, placed<tier,A,p,q>&& x) {
+    auto ctx = node.void_context(call_point);
+    fcpp::details::maybe_do(common::type_sequence<placed<tier,A,q,0>>{}, [&ctx](){
+        ctx.insert();
+    });
+    return fcpp::details::maybe_perform(common::type_sequence<placed<tier,A,p,q>>{}, [&ctx](auto&& y){
+        return fcpp::details::align(std::move(y), ctx.align(q));
+    }, std::move(x));
+}
+
 //! @brief Computes in-place the restriction of a field to the current domain.
 template <typename node_t, typename A, typename = if_local<A>>
 inline void align_inplace(node_t const&, trace_t, A&) {}
@@ -362,7 +392,7 @@ return_result_type<D, G(D)> old(node_t& node, trace_t call_point, D const& f0, G
  *
  * Equivalent to:
  * ~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
- * old(f0, [](A fo){
+ * old(CALL, f0, [](A fo){
  *     return make_tuple(fo, f);
  * })
  * ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -381,6 +411,50 @@ A old(node_t& node, trace_t call_point, D const& f0, A const& f) {
 template <typename node_t, typename A>
 inline A old(node_t& node, trace_t call_point, A const& f) {
     return old(node, call_point, f, f);
+}
+/**
+ * @brief The previous-round value (defaults to first argument), modified through the second argument (placed version).
+ *
+ * The \p op argument may return a `E` or a `tuple<R,E>`, where `E` is
+ * is of the form `placed<tier,T,p,q>`. In the latter case,
+ * the first element of the returned pair is returned by the function, while
+ * the second element of the returned pair is written in the exports.
+ * The \p op argument is assumed to accept an argument of type `placed<tier,T,p,q>`.
+ * The init value `D` should be convertible to `placed<tier,T,p,q>`.
+ */
+template <tier_t tier, typename node_t, typename D, typename G>
+return_result_type<void, G(D)> old(std::integer_sequence<tier_t, tier> t, node_t& node, trace_t call_point, D const& f0, G&& op) {
+    using E = export_result_type<void, G(D)>;
+    static_assert(tier == extract_tier<E>, "the export type E should be of the form placed<tier,...>");
+    auto ctx = node.template self_context<typename E::field_type>(call_point);
+    auto f = op(fcpp::details::maybe_perform(common::type_sequence<E>{}, [&ctx](auto const& x){
+        return ctx.old(x);
+    }, f0));
+    fcpp::details::maybe_do(common::type_sequence<E>{}, [&ctx](auto const& x){
+        ctx.insert(x);
+    }, align(t, node, call_point, details::maybe_second(common::type_sequence<void>{}, f)));
+    return details::maybe_first(common::type_sequence<void>{}, f);
+}
+/**
+ * @brief The previous-round value of the second argument, defaulting to the first argument if no previous value (placed version).
+ *
+ * Equivalent to:
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
+ * old(PCALL, f0, [](E fo){
+ *     return make_tuple(fo, f);
+ * })
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~
+ */
+template <tier_t tier, typename node_t, typename D, typename E, typename = std::enable_if_t<is_placed<E>>>
+E old(std::integer_sequence<tier_t, tier> t, node_t& node, trace_t call_point, D const& f0, E const& f) {
+    static_assert(tier == extract_tier<E>, "the export type E should be of the form placed<tier,...>");
+    auto ctx = node.template self_context<typename E::field_type>(call_point);
+    fcpp::details::maybe_do(common::type_sequence<E>{}, [&ctx](auto const& x){
+        ctx.insert(x);
+    }, align(t, node, call_point, f));
+    return fcpp::details::maybe_perform(common::type_sequence<E>{}, [&ctx](auto const& x){
+        return ctx.old(x);
+    }, f0);
 }
 
 //! @brief The exports type used by the old construct with message type `T`.
@@ -511,6 +585,8 @@ return_result_type<D, G(D, nbr_arg<D>)> oldnbr(node_t& node, trace_t call_point,
     ctx.insert(details::maybe_second(common::type_sequence<D>{}, f));
     return details::maybe_first(common::type_sequence<D>{}, f);
 }
+
+//TODO: placed version
 
 //! @brief The exports type used by the oldnbr construct with message type `T`.
 template <typename T>

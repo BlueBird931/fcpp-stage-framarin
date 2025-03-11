@@ -149,6 +149,99 @@ MULTI_TEST(BasicsTest, Old, O, 3) {
     EXPECT_EQ(3, d);
 }
 
+template <tier_t t>
+using p10 = placed<t,int,1,0>;
+template <tier_t t>
+using p20 = placed<t,int,2,0>;
+template <tier_t t>
+using p11 = placed<t,int,1,1>;
+template <tier_t t>
+using p21 = placed<t,int,2,1>;
+template <tier_t t>
+using p31 = placed<t,int,3,1>;
+template <tier_t t>
+using p12 = placed<t,int,1,2>;
+template <tier_t t>
+using p32 = placed<t,int,3,2>;
+
+#define EXPECT_ID(a, b) {                           \
+    auto res = a;                                   \
+    auto exp = b;                                   \
+    EXPECT_SAME(decltype(res), decltype(exp));      \
+    EXPECT_EQ(res.get_or(-999), exp.get_or(-999));  \
+}
+
+template <tier_t tier, typename node_t, typename D>
+auto counter(std::integer_sequence<tier_t, tier> t, node_t& node, trace_t call_point, D init) {
+    return coordination::old(t, node, call_point, init, [](D const& o) {
+        return o+1;
+    });
+}
+
+template <tier_t tier, typename node_t, typename D>
+auto counter2(std::integer_sequence<tier_t, tier> t, node_t& node, trace_t call_point, D init) {
+    return coordination::old(t, node, call_point, init, [](D const& o) {
+        return make_tuple(o, o+1);
+    });
+}
+
+MULTI_TEST(BasicsTest, PlacedOld, O, 3) {
+    std::integer_sequence<tier_t, 1> t1;
+    std::integer_sequence<tier_t, 2> t2;
+    typename combo<O>::net  network{common::make_tagged_tuple<>()};
+    typename combo<O>::node d0{network, common::make_tagged_tuple<uid,node_tier>(0,1)};
+    typename combo<O>::node d1{network, common::make_tagged_tuple<uid,node_tier>(1,1)};
+    typename combo<O>::node d2{network, common::make_tagged_tuple<uid,node_tier>(2,2)};
+    auto x1 = details::make_placed<1, int, 3, 1>({0, 1, 2}, {5, 0, 2, 4});
+    auto x2 = details::make_placed<2, int, 3, 1>({0, 1, 2}, {5, 0, 2, 4});
+    auto y1 = details::make_placed<1, int, 3, 6>({0, 1, 2}, {5, 0, 2, 4});
+    auto y2 = details::make_placed<2, int, 3, 6>({0, 1, 2}, {5, 0, 2, 4});
+    d0.round_start(0);
+    d1.round_start(0);
+    d2.round_start(0);
+    EXPECT_ID(coordination::old(t1, d0, 0, x1+1, x1), x1+1);
+    EXPECT_ID(coordination::old(t1, d1, 0, x1+1, x1), x1+1);
+    EXPECT_ID(coordination::old(t2, d2, 0, x2+1, x2), x2+1);
+    EXPECT_ID(coordination::old(t1, d0, 1, y1+1, y1), y1+1);
+    EXPECT_ID(coordination::old(t1, d1, 1, y1+1, y1), y1+1);
+    EXPECT_ID(coordination::old(t2, d2, 1, y2+1, y2), y2+1);
+    sendall(d0, d1, d2);
+    EXPECT_ID(coordination::old(t1, d0, 0, x1+3, x1+2), (details::make_placed<1, int, 3, 1>({0}, {5, 0})));
+    EXPECT_ID(coordination::old(t1, d1, 0, x1+3, x1+2), (details::make_placed<1, int, 3, 1>({1}, {5, 2})));
+    EXPECT_ID(coordination::old(t2, d2, 0, x2+3, x2+2), (details::make_placed<2, int, 3, 1>({}, {5})));
+    EXPECT_ID(coordination::old(t1, d0, 1, y1+3, y1+2), (details::make_placed<1, int, 3, 6>({}, {5})));
+    EXPECT_ID(coordination::old(t1, d1, 1, y1+3, y1+2), (details::make_placed<1, int, 3, 6>({}, {5})));
+    EXPECT_ID(coordination::old(t2, d2, 1, y2+3, y2+2), (details::make_placed<2, int, 3, 6>({2}, {5, 4})));
+    sendall(d0, d1, d2);
+    EXPECT_ID(coordination::old(t1, d0, 0, x1+5, x1+4), (details::make_placed<1, int, 3, 1>({0, 1}, {7, 2, 4})));
+    EXPECT_ID(coordination::old(t1, d1, 0, x1+5, x1+4), (details::make_placed<1, int, 3, 1>({0, 1}, {7, 2, 4})));
+    EXPECT_ID(coordination::old(t2, d2, 0, x2+5, x2+4), (details::make_placed<2, int, 3, 1>({0, 1}, {7, 2, 4})));
+    EXPECT_ID(coordination::old(t1, d0, 1, y1+3, y1+2), (details::make_placed<1, int, 3, 6>({2}, {7, 6})));
+    EXPECT_ID(coordination::old(t1, d1, 1, y1+3, y1+2), (details::make_placed<1, int, 3, 6>({2}, {7, 6})));
+    EXPECT_ID(coordination::old(t2, d2, 1, y2+3, y2+2), (details::make_placed<2, int, 3, 6>({2}, {7, 6})));
+    sendall(d0, d1, d2);
+    EXPECT_ID(counter(t1, d0, 2, x1), x1+1);
+    EXPECT_ID(counter(t1, d1, 2, x1), x1+1);
+    EXPECT_ID(counter(t2, d2, 2, x2), x2+1);
+    EXPECT_ID(counter2(t1, d0, 3, x1), x1);
+    EXPECT_ID(counter2(t1, d1, 3, x1), x1);
+    EXPECT_ID(counter2(t2, d2, 3, x2), x2);
+    sendall(d0, d1, d2);
+    EXPECT_ID(counter(t1, d0, 2, x1), (details::make_placed<1, int, 3, 1>({0}, {7, 2})));
+    EXPECT_ID(counter(t1, d1, 2, x1), (details::make_placed<1, int, 3, 1>({1}, {7, 4})));
+    EXPECT_ID(counter(t2, d2, 2, x2), (details::make_placed<2, int, 3, 1>({}, {7})));
+    EXPECT_ID(counter2(t1, d0, 3, x1), (details::make_placed<1, int, 3, 1>({0}, {6, 1})));
+    EXPECT_ID(counter2(t1, d1, 3, x1), (details::make_placed<1, int, 3, 1>({1}, {6, 3})));
+    EXPECT_ID(counter2(t2, d2, 3, x2), (details::make_placed<2, int, 3, 1>({}, {6})));
+    sendall(d0, d1, d2);
+    EXPECT_ID(counter(t1, d0, 2, x1), (details::make_placed<1, int, 3, 1>({0}, {8, 3})));
+    EXPECT_ID(counter(t1, d1, 2, x1), (details::make_placed<1, int, 3, 1>({1}, {8, 5})));
+    EXPECT_ID(counter(t2, d2, 2, x2), (details::make_placed<2, int, 3, 1>({}, {8})));
+    EXPECT_ID(counter2(t1, d0, 3, x1), (details::make_placed<1, int, 3, 1>({0}, {7, 2})));
+    EXPECT_ID(counter2(t1, d1, 3, x1), (details::make_placed<1, int, 3, 1>({1}, {7, 4})));
+    EXPECT_ID(counter2(t2, d2, 3, x2), (details::make_placed<2, int, 3, 1>({}, {7})));
+}
+
 template <typename node_t>
 int sharing(node_t& node, trace_t call_point, int x) {
     internal::trace_call trace_caller(node.stack_trace, call_point);
@@ -287,28 +380,6 @@ auto gossip2(std::integer_sequence<tier_t, tier> t, node_t& node, trace_t call_p
     });
 }
 
-template <tier_t t>
-using p10 = placed<t,int,1,0>;
-template <tier_t t>
-using p20 = placed<t,int,2,0>;
-template <tier_t t>
-using p11 = placed<t,int,1,1>;
-template <tier_t t>
-using p21 = placed<t,int,2,1>;
-template <tier_t t>
-using p31 = placed<t,int,3,1>;
-template <tier_t t>
-using p12 = placed<t,int,1,2>;
-template <tier_t t>
-using p32 = placed<t,int,3,2>;
-
-#define EXPECT_ID(a, b) {                           \
-    auto res = a;                                   \
-    auto exp = b;                                   \
-    EXPECT_SAME(decltype(res), decltype(exp));      \
-    EXPECT_EQ(res.get_or(-999), exp.get_or(-999));  \
-}
-
 MULTI_TEST(BasicsTest, PlacedNbr, O, 3) {
     std::integer_sequence<tier_t, 1> t1;
     std::integer_sequence<tier_t, 2> t2;
@@ -316,7 +387,6 @@ MULTI_TEST(BasicsTest, PlacedNbr, O, 3) {
     typename combo<O>::node d0{network, common::make_tagged_tuple<uid,node_tier>(0,1)};
     typename combo<O>::node d1{network, common::make_tagged_tuple<uid,node_tier>(1,1)};
     typename combo<O>::node d2{network, common::make_tagged_tuple<uid,node_tier>(2,2)};
-    int d;
     d0.round_start(0);
     d1.round_start(0);
     d2.round_start(0);

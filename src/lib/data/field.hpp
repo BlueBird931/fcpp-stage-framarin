@@ -1001,7 +1001,6 @@ namespace details {
     template <typename F, typename A, typename B>
     if_local<A, local_result<F,A const&,B const&>>
     fold_hood(F&& op, A const& x, B const& b, std::vector<device_t> const& dom, device_t i) {
-        assert(std::binary_search(dom.begin(), dom.end(), i));
         local_result<F,A const&,B const&> res = details::self(b, i);
         for (size_t n = dom.size(); n>1; --n) res = op(x, res);
         return res;
@@ -1010,7 +1009,6 @@ namespace details {
     template <typename F, typename A, typename B>
     if_local<A, local_result<F,device_t,A const&,B const&>>
     fold_hood(F&& op, A const& x, B const& b, std::vector<device_t> const& dom, device_t i) {
-        assert(std::binary_search(dom.begin(), dom.end(), i));
         local_result<F,device_t,A const&,B const&> res = details::self(b, i);
         for (size_t k=0; k<dom.size(); ++k) if (dom[k] != i) res = op(dom[k], x, res);
         return res;
@@ -1019,7 +1017,6 @@ namespace details {
     template <typename F, typename A, typename B>
     if_field<A, local_result<F,A const&,B const&>>
     fold_hood(F&& op, A const& f, B const& b, std::vector<device_t> const& dom, device_t i) {
-        assert(std::binary_search(dom.begin(), dom.end(), i));
         local_result<F,A const&,B const&> res = self(b, i);
         field_iterator<A const> it(f);
         for (size_t k=0; k<dom.size(); ++k) if (dom[k] != i) {
@@ -1032,7 +1029,6 @@ namespace details {
     template <typename F, typename A, typename B>
     if_field<A, local_result<F,device_t,A const&,B const&>>
     fold_hood(F&& op, A const& f, B const& b, std::vector<device_t> const& dom, device_t i) {
-        assert(std::binary_search(dom.begin(), dom.end(), i));
         local_result<F,device_t,A const&,B const&> res = self(b, i);
         field_iterator<A const> it(f);
         for (size_t k=0; k<dom.size(); ++k) if (dom[k] != i) {
