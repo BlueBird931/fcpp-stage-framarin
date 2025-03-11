@@ -126,6 +126,12 @@ to_local<A&&> self(node_t const& node, trace_t, A&& x) {
     return fcpp::details::self(std::move(x), node.uid);
 }
 
+//! @brief Accesses the local value of a placed field.
+template <tier_t tier, typename node_t, typename A>
+inline auto self(std::integer_sequence<tier_t, tier> t, node_t const& node, trace_t, A&& x) {
+    return fcpp::details::self(t, std::forward<A>(x), node.uid);
+}
+
 //! @brief Accesses a given value of a field.
 template <typename node_t, typename A>
 to_local<A const&> self(node_t const&, trace_t, A const& x, device_t uid) {
@@ -136,6 +142,12 @@ to_local<A const&> self(node_t const&, trace_t, A const& x, device_t uid) {
 template <typename node_t, typename A, typename = std::enable_if_t<not std::is_reference<A>::value>>
 to_local<A&&> self(node_t const&, trace_t, A&& x, device_t uid) {
     return fcpp::details::self(std::move(x), uid);
+}
+
+//! @brief Accesses a given value of a placed field.
+template <tier_t tier, typename node_t, typename A>
+inline auto self(std::integer_sequence<tier_t, tier> t, node_t const&, trace_t, A&& x, device_t uid) {
+    return fcpp::details::self(t, std::forward<A>(x), uid);
 }
 
 //! @brief Returns the local value of a field (modifiable).
@@ -245,6 +257,7 @@ auto fold_hood(node_t& node, trace_t call_point, O&& op, A const& a, B const& b)
 */
 template <tier_t tier, typename node_t, typename O, typename A, tier_t p, tier_t q, typename B>
 placed<tier,A,p,0> fold_hood(std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point, O&& op, placed<tier,A,p,q> const& a, B const& b) {
+    static_assert(to_placed<tier,B>::q_value == 0, "the fold initial element must be a local value");
     auto ctx = node.void_context(call_point);
     fcpp::details::maybe_do(common::type_sequence<placed<tier,A,q,0>>{}, [&ctx](){
         ctx.insert();
@@ -433,6 +446,7 @@ inline nbr_arg<E> nbr(node_t& node, trace_t call_point, E const& f) {
  */
 template <tier_t tier, typename node_t, typename D, typename G>
 return_result_type<void, G(D)> nbr(std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point, D const& f0, G&& op) {
+    static_assert(to_placed<tier,D>::q_value == 0, "the nbr initial element must be a local value");
     using E = export_result_type<void, G(D)>;
     static_assert(tier == extract_tier<E>, "the export type E should be of the form placed<tier,...>");
     using A = typename E::dual_type;

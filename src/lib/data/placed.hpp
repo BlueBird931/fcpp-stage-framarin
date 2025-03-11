@@ -50,7 +50,9 @@ namespace details {
     template <tier_t tier, typename T, tier_t p, tier_t q, typename F>
     placed<tier,T,p,q> place_data(common::type_sequence<placed<tier,T,p,q>>, F&&);
     template <tier_t tier, typename T, tier_t p, tier_t q>
-    auto const& maybe_get_data(placed<tier,T,p,q> const&);
+    typename placed<tier,T,p,q>::field_type const& maybe_get_data(placed<tier,T,p,q> const&);
+    template <tier_t tier, typename T, tier_t p, tier_t q>
+    typename placed<tier,T,p,q>::field_type maybe_get_data(placed<tier,T,p,q>&&);
 }
 //! @}
 //! @endcond
@@ -249,7 +251,9 @@ class placed {
     template <tier_t tier1, typename T1, tier_t p1, tier_t q1, typename F>
     friend placed<tier1,T1,p1,q1> details::place_data(common::type_sequence<placed<tier1,T1,p1,q1>>, F&&);
     template <tier_t tier1, typename T1, tier_t p1, tier_t q1>
-    friend auto const& details::maybe_get_data(placed<tier1,T1,p1,q1> const&);
+    friend typename placed<tier1,T1,p1,q1>::field_type const& details::maybe_get_data(placed<tier1,T1,p1,q1> const&);
+    template <tier_t tier1, typename T1, tier_t p1, tier_t q1>
+    friend typename placed<tier1,T1,p1,q1>::field_type details::maybe_get_data(placed<tier1,T1,p1,q1>&&);
     //! @}
     //! @endcond
 
@@ -408,15 +412,25 @@ namespace details {
         return place_data(common::type_sequence<placed<tier,T,p,q>>{}, make_field(std::move(ids), std::move(vals)));
     }
 
-    //! @brief Accesses inner data of a possibly placed field (empty overload).
+    //! @brief Accesses inner data of a possibly placed field (local overload).
     template <typename T>
     T const& maybe_get_data(T const& x) {
         return x;
     }
-    //! @brief Accesses inner data of a possibly placed field (active overload).
+    //! @brief Accesses inner data of a possibly placed field (local moving overload).
+    template <typename T, typename = std::enable_if_t<not std::is_reference<T>::value>>
+    T maybe_get_data(T&& x) {
+        return std::move(x);
+    }
+    //! @brief Accesses inner data of a possibly placed field (placed overload).
     template <tier_t tier, typename T, tier_t p, tier_t q>
-    auto const& maybe_get_data(placed<tier,T,p,q> const& x) {
+    typename placed<tier,T,p,q>::field_type const& maybe_get_data(placed<tier,T,p,q> const& x) {
         return x.m_data.front();
+    }
+    //! @brief Accesses inner data of a possibly placed field (placed moving overload).
+    template <tier_t tier, typename T, tier_t p, tier_t q>
+    typename placed<tier,T,p,q>::field_type maybe_get_data(placed<tier,T,p,q>&& x) {
+        return std::move(x.m_data.front());
     }
 
     //! @brief Applies a void function on a sequence of placed fields (empty overload).
@@ -449,19 +463,14 @@ namespace details {
         return maybe_perform(std::integral_constant<bool, bool(tier&p)>{}, t, std::forward<Ts>(xs)...);
     }
 
-    //! @brief Accesses the value from a placed field corresponing to a certain device (const).
-    template <tier_t tier, typename T, tier_t p, tier_t q>
-    inline placed<tier,T,p,0> self(placed<tier,T,p,q> const& x, device_t i) {
-        return maybe_perform(common::type_sequence<placed<tier,T,p,0>>{}, [i](auto const& y){
-            return self(y, i);
-        }, x);
-    }
-    //! @brief Accesses the value from a placed field corresponing to a certain device (non-const).
-    template <tier_t tier, typename T, tier_t p, tier_t q>
-    inline placed<tier,T,p,0> self(placed<tier,T,p,q>& x, device_t i) {
-        return maybe_perform(common::type_sequence<placed<tier,T,p,0>>{}, [i](auto const& y){
-            return self(y, i);
-        }, x);
+    //! @brief Accesses the value from a placed field corresponing to a certain device, returning a local placed value.
+    template <tier_t tier, typename T>
+    inline auto self(std::integer_sequence<tier_t, tier>, T&& x, device_t i) {
+        using P = to_placed<tier, T>;
+        using L = placed<tier, std::decay_t<typename P::value_type>, P::p_value, 0>;
+        return maybe_perform(common::type_sequence<L>{}, [i](auto&& y){
+            return self(std::forward<decltype(y)>(y), i);
+        }, std::forward<T>(x));
     }
 
     //! @brief Applies an operator pointwise on a sequence of placed fields (not placed overload).

@@ -172,12 +172,20 @@ TEST(PlacedTest, Constructors) {
 }
 
 TEST(PlacedTest, Access) {
-    EXPECT_EQ(-1, details::self(field<int>(-1), 3));
-    EXPECT_EQ(-3, details::self(-3, 999));
+    using T8 = std::integer_sequence<tier_t,8>;
+    auto r1 = details::self(T8{}, field<int>(-1), 3);
+    EXPECT_SAME(decltype(r1), placed<8, int, tier_t(-1), 0>);
+    EXPECT_EQ(r1.get_or(999), -1);
+    auto r2 = details::self(T8{}, -3, 999);
+    EXPECT_SAME(decltype(r2), placed<8, int, tier_t(-1), 0>);
+    EXPECT_EQ(r2.get_or(999), -3);
     auto x = details::make_placed<8, double, 12, 2>({1, 2, 3}, {2, 4, 6, 8});
-    auto r1 = details::self(x, 2);
-    EXPECT_SAME(decltype(r1), placed<8, double, 12, 0>);
-    EXPECT_EQ(r1.get_or(999), 6.0);
+    auto r3 = details::self(T8{}, x, 2);
+    EXPECT_SAME(decltype(r3), placed<8, double, 12, 0>);
+    EXPECT_EQ(r3.get_or(999), 6.0);
+    auto r4 = details::self(T8{}, std::move(x), 2);
+    EXPECT_SAME(decltype(r4), placed<8, double, 12, 0>);
+    EXPECT_EQ(r4.get_or(999), 6.0);
 }
 
 TEST(PlacedTest, PMapHood) {
