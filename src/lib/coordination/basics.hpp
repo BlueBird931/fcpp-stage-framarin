@@ -259,7 +259,7 @@ auto fold_hood(node_t& node, trace_t call_point, O&& op, A const& a) {
  * The accumulate starts from the value of argument \p b, and the
  * operation is applied with values from all ids except for the
  * self id in increasing order.
-*/
+ */
 template <typename node_t, typename O, typename A, typename B>
 auto fold_hood(node_t& node, trace_t call_point, O&& op, A const& a, B const& b) {
     auto ctx = node.void_context(call_point);
@@ -284,7 +284,7 @@ auto fold_hood(node_t& node, trace_t call_point, O&& op, A const& a, B const& b)
  * The accumulate starts from the value of argument \p b, and the
  * operation is applied with values from all ids except for the
  * self id in increasing order.
-*/
+ */
 template <tier_t tier, typename node_t, typename O, typename A, tier_t p, tier_t q, typename B>
 placed<tier,A,p,0> fold_hood(std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point, O&& op, placed<tier,A,p,q> const& a, B const& b) {
     static_assert(to_placed<tier,B>::q_value == 0, "the fold initial element must be a local value");

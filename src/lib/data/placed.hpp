@@ -355,6 +355,16 @@ class placed {
         return s & m_data;
     }
 
+    template <typename O>
+    void print(O& o) const {
+        if (bool(tier & p)) {
+            o << m_data.front();
+        } else {
+            o << common::type_name<T>();
+        }
+        o << "@" << int(p) << "," << int(q);
+    }
+
   private:
     //! @brief Field constructor (copying).
     placed(field<T> const& f) : m_data(maybe_field(std::integral_constant<bool, (tier&p) and q>{}, f)) {}

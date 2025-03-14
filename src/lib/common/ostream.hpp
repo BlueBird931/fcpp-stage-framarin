@@ -120,6 +120,8 @@ namespace details {
 
 template <typename T>
 class field;
+template <tier_t tier, typename T, tier_t p, tier_t q>
+class placed;
 template <typename... Ts>
 class tuple;
 template <size_t n>
@@ -442,6 +444,21 @@ namespace fcpp {
         s += to_string(common::escape(const_ref(details::get_vals(x)[0])));
         s.push_back('}');
         return s;
+    }
+
+    //! @brief Printing placed fields.
+    template <typename O, tier_t tier, typename T, tier_t p, tier_t q, typename = common::if_ostream<O>>
+    O& operator<<(O& o, placed<tier,T,p,q> const& x) {
+        x.print(o);
+        return o;
+    }
+
+    //! @brief Converting placed fields to strings.
+    template <tier_t tier, typename T, tier_t p, tier_t q, typename = fcpp::details::if_stringable<T>>
+    std::string to_string(placed<tier,T,p,q> const& x) {
+        std::stringstream ss;
+        x.print(ss);
+        return ss.str();
     }
 
     //! @brief Printing tuples.

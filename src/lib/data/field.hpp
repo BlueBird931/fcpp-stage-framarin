@@ -1060,7 +1060,7 @@ field_result<F,A...> map_hood(F&& op, A const&... a) {
 }
 //! @brief Optimisation for all local arguments.
 template <typename F, typename... L, typename = if_local<tuple<L...>>>
-field_result<F,L...> map_hood(F&& op, L&&... l) {
+local_result<F,L...> map_hood(F&& op, L&&... l) {
     return op(std::forward<L>(l)...);
 }
 //! @brief Optimisation for a single movable field argument in first position.

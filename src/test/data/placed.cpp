@@ -193,6 +193,11 @@ TEST(PlacedTest, PMapHood) {
     placed<8,int,11,6> y(2);
     placed<8,int,12,12> z(4);
     placed<8,int,6> w;
+    auto r0 = pmap_hood([](int a, int b){
+        return make_tuple(a,b);
+    }, x, 2);
+    EXPECT_SAME(decltype(r0), placed<8,tuple<int,int>>);
+    EXPECT_EQ(r0.get_or({99,99}), make_tuple(1,2));
     auto r1 = pmap_hood([](int a, int b){
         return a+b;
     }, x, y);

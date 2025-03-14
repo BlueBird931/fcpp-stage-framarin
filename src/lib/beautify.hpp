@@ -11,6 +11,7 @@
 
 //! @cond INTERNAL
 #define __TYPE_ARG__(T) typename T
+#define __PLACE_ARG__(p) tier_t p
 
 #define __MAPPER0__(M)
 #define __MAPPER1__(M,A)                          M(A)
@@ -77,16 +78,25 @@ void main::operator()(node_t& node, times_t)
 
 
 //! @brief Macro defining a non-generic aggregate function with placements.
-#define PFUN        template <tier_t tier, typename node_t>
+#define PFUN            template <tier_t tier, typename node_t>
 
-//! @brief Macro defining the type arguments of an aggregate function with placements.
-#define PGEN(...)   template <tier_t tier, MACRO_MAPPER(__TYPE_ARG__, node_t, __VA_ARGS__)>
+//! @brief Macro defining the template arguments of an aggregate function with placements.
+#define PGEN(...)       template <tier_t tier, typename node_t, __VA_ARGS__>
+
+//! @brief Macro defining the type template parameters of an aggregate function with placements.
+#define PTYPE(...)      MACRO_MAPPER(__TYPE_ARG__, __VA_ARGS__)
+
+//! @brief Macro defining the placement template arguments of an aggregate function with placements.
+#define PPLACE(...)     MACRO_MAPPER(__PLACE_ARG__, __VA_ARGS__)
+
+//! @brief Macro defining the placement parameters of an aggregate function with placements.
+#define TIER(tier)      std::integer_sequence<tier_t, tier>
 
 //! @brief Macro inserting the default arguments.
-#define PARGS           std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point
+#define PARGS           TIER(tier), node_t& node, trace_t call_point
 
 //! @brief Macro inserting the default arguments at function call.
-#define PCALL           std::integer_sequence<tier_t, tier>{}, node, __COUNTER__
+#define PCALL           TIER(tier){}, node, __COUNTER__
 
 //! @brief Macro adding placement annotations to a local type.
 #define place(...)      placed<tier, __VA_ARGS__>
@@ -104,27 +114,33 @@ void main::operator()(node_t& node, times_t)
  * as a property associated with @ref fcpp::component::tags::node_tier .
  * Otherwise, the main is compiled with the `FCPP_TIER` defining the value for `tier`.
  */
-#define PMAIN()                                     \
-struct main {                                       \
-    template <typename node_t>                      \
-    inline void operator()(node_t&, times_t);       \
-    template <tier_t t, typename node_t>            \
-    inline void body_rec(node_t&);                  \
-    template <tier_t tier, typename node_t>         \
-    void body(node_t&);                             \
-};                                                  \
-template <typename node_t>                          \
-void main::operator()(node_t& node, times_t) {      \
-    body_rec<0>(node);                              \
-}                                                   \
-template <tier_t t, typename node_t>                \
-void main::body_rec(node_t& node) {                 \
-    if (node.storage(FCPP_TIER_TAG{}) == (1<<t))    \
-        body<(1<<t)>(node);                         \
-    else if (tier+1 < FCPP_TIERS_MAX)               \
-        body_rec<tier+1>(node);                     \
-}                                                   \
-template <tier_t tier, typename node_t>             \
+#define PMAIN()                                             \
+struct main {                                               \
+    template <typename node_t>                              \
+    inline void operator()(node_t&, times_t);               \
+    template <typename node_t>                              \
+    inline void body_rec(TIER(FCPP_TIERS_MAX), node_t&);    \
+    template <tier_t t, typename node_t>                    \
+    inline void body_rec(TIER(t), node_t&);                 \
+    template <tier_t tier, typename node_t>                 \
+    void body(node_t&);                                     \
+};                                                          \
+template <typename node_t>                                  \
+void main::operator()(node_t& node, times_t) {              \
+    body_rec(TIER(0){}, node);                              \
+}                                                           \
+template <typename node_t>                                  \
+void main::body_rec(TIER(FCPP_TIERS_MAX), node_t&) {        \
+    assert(false);                                          \
+}                                                           \
+template <tier_t t, typename node_t>                        \
+void main::body_rec(TIER(t), node_t& node) {                \
+    using fcpp::component::tags::node_tier;                 \
+    if (node.storage(node_tier{}) == (1<<t))                \
+        body<(1<<t)>(node);                                 \
+    else body_rec(TIER(t+1){}, node);                       \
+}                                                           \
+template <tier_t tier, typename node_t>                     \
 void main::body(node_t& node)
 
 #else
