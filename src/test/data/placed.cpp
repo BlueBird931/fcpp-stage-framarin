@@ -163,12 +163,17 @@ TEST(PlacedTest, ToPlaced) {
 }
 
 TEST(PlacedTest, Constructors) {
-    placed<8,double,255,0> fd, x, y;
+    placed<8,double,tier_t(-1),0> f(1), x(2), y(4);
+    EXPECT_EQ(f.get_or(999), 1);
+    EXPECT_EQ(x.get_or(999), 2);
+    EXPECT_EQ(y.get_or(999), 4);
     placed<8,int,11,6> x2(x), x3(std::move(y));
-    x2 = fd;
-    x.get();
-    x.get_or(3);
-    x2.get_or(3);
+    EXPECT_EQ(x2.get_or(999), 2);
+    EXPECT_EQ(x3.get_or(999), 4);
+    x2 = f;
+    EXPECT_EQ(x2.get_or(999), 1);
+    EXPECT_EQ(f.get(), common::option<double>(1));
+    EXPECT_EQ(x2.get(), common::option<field<int>>(1));
 }
 
 TEST(PlacedTest, Access) {
@@ -233,6 +238,8 @@ TEST(PlacedTest, PMapHood) {
 TEST(PlacedTest, Operators) {
     placed<8, int, 12, 2> x(1);
     placed<8, double, 24, 4> y(2);
+    field<int> z(4);
+    placed<8, tuple<int,int>, 12, 2> w(make_tuple(1,3));
 
     auto r1 = x + x;
     EXPECT_SAME(decltype(r1), placed<8, int, 12, 2>);
@@ -255,6 +262,12 @@ TEST(PlacedTest, Operators) {
     auto r7 = -x;
     EXPECT_SAME(decltype(r7), placed<8, int, 12, 2>);
     EXPECT_EQ(r7.get_or(999), -1);
+    auto r8 = x + z;
+    EXPECT_SAME(decltype(r8), placed<8, int, 12, tier_t(-1)>);
+    EXPECT_EQ(r8.get_or(999), 5);
+    auto r9 = make_tuple(z, 6) + w;
+    EXPECT_SAME(decltype(r9), placed<8, tuple<int,int>, 12, tier_t(-1)>);
+    EXPECT_EQ(r9.get_or(make_tuple(999,999)), make_tuple(5,9));
 }
 
 TEST(PlacedTest, FoldHood) {

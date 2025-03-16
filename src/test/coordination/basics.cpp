@@ -171,6 +171,18 @@ using p32 = placed<t,int,3,2>;
     EXPECT_EQ(res.get_or(-999), exp.get_or(-999));  \
 }
 
+MULTI_TEST(BasicsTest, Restrict, O, 3) {
+    std::integer_sequence<tier_t, 1> t;
+    typename combo<O>::net  network{common::make_tagged_tuple<>()};
+    typename combo<O>::node d0{network, common::make_tagged_tuple<uid,node_tier>(0,1)};
+    auto x1 = coordination::restrict<3,2>(t, d0, 0, 42);
+    EXPECT_ID(x1, p32<1>(42));
+    auto x2 = coordination::restrict<3,2>(t, d0, 0, field<int>(42));
+    EXPECT_ID(x2, p32<1>(42));
+    auto x3 = coordination::restrict<3,2>(t, d0, 0, placed<1,int,7,6>(42));
+    EXPECT_ID(x3, p32<1>(42));
+}
+
 template <tier_t tier, typename node_t, typename D>
 auto counter(std::integer_sequence<tier_t, tier> t, node_t& node, trace_t call_point, D init) {
     return coordination::old(t, node, call_point, init, [](D const& o) {

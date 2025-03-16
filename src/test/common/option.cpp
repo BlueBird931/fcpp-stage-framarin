@@ -15,6 +15,7 @@ TEST(OptionTest, True) {
     EXPECT_EQ(x.front(), 42);
     x.front() = 10;
     EXPECT_EQ(x.front(), 10);
+    EXPECT_EQ(x.get_or(2), 10);
     int c = 0;
     for (int& i : x) {
         EXPECT_EQ(i, 10);
@@ -37,6 +38,7 @@ TEST(OptionTest, False) {
     z = std::move(y);
     EXPECT_EQ(x, z);
     EXPECT_EQ(x.front(), 0);
+    EXPECT_EQ(x.get_or(2), 2);
     int c = 0;
     for (int& i : x) ++c, (void)i;
     EXPECT_EQ(c, 0);
@@ -51,6 +53,7 @@ TEST(OptionTest, Default) {
     common::option<int> x(42), y, z;
     EXPECT_EQ((int)y.size(), 0);
     EXPECT_TRUE(y.empty());
+    EXPECT_EQ(y.get_or(2), 2);
     int c = 0;
     for (int& i : y) ++c, (void)i;
     EXPECT_EQ(c, 0);
@@ -60,6 +63,7 @@ TEST(OptionTest, Default) {
     EXPECT_EQ(x.front(), 42);
     x.front() = 10;
     EXPECT_EQ(x.front(), 10);
+    EXPECT_EQ(x.get_or(2), 10);
     c = 0;
     for (int& i : x) {
         EXPECT_EQ(i, 10);

@@ -83,7 +83,7 @@ namespace coordination {
 //! @brief Computes the restriction of a local to the current domain.
 template <typename node_t, typename A, typename = if_local<A>>
 inline A align(node_t const&, trace_t, A&& x) {
-    return x;
+    return std::forward<A>(x);
 }
 
 //! @brief Computes the restriction of a field to the current domain.
@@ -105,7 +105,7 @@ A align(node_t& node, trace_t call_point, A&& x) {
 //! @brief Computes the restriction of a local to the current domain (placed version).
 template <tier_t tier, typename node_t, typename A, typename = std::enable_if_t<not is_placed<A>>>
 A align(std::integer_sequence<tier_t, tier>, node_t&, trace_t, A&& x) {
-    return x;
+    return std::forward<A>(x);
 }
 
 //! @brief Computes the restriction of a placed field to the current domain.
@@ -130,6 +130,17 @@ placed<tier,A,p,q> align(std::integer_sequence<tier_t, tier>, node_t& node, trac
     return fcpp::details::maybe_perform(common::type_sequence<placed<tier,A,p,q>>{}, [&ctx](auto&& y){
         return fcpp::details::align(std::move(y), ctx.align(q));
     }, std::move(x));
+}
+
+//! @brief Restricts the placement of a placed field to a given placement (without aligning).
+template <tier_t p, tier_t q, tier_t tier, typename node_t, typename T>
+auto restrict(std::integer_sequence<tier_t, tier>, node_t& node, trace_t call_point, T&& x) {
+    using P = to_placed<tier, T>;
+    using S = std::decay_t<typename P::value_type>;
+    static_assert(bitsubset(p, P::p_value), "argument is not defined on whole placement p");
+    return fcpp::details::maybe_perform(common::type_sequence<placed<tier,S,p,q>>{}, [&node, &call_point](auto&& y){
+        return std::forward<decltype(y)>(y);
+    }, std::forward<T>(x));
 }
 
 //! @brief Computes in-place the restriction of a field to the current domain.

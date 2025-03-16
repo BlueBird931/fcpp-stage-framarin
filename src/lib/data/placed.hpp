@@ -324,19 +324,19 @@ class placed {
     }
     //! @}
 
-    //! @brief Write access to the underlying field (fails if p is not `tier_t(-1)`).
-    field_type& get() {
-        return get_impl(std::integral_constant<bool, p == tier_t(-1)>{});
+    //! @brief Write access to the underlying optional field.
+    option_type& get() {
+        return m_data;
     }
 
-    //! @brief Const access to the underlying field (fails if p is not `tier_t(-1)`).
-    field_type const& get() const {
-        return get_impl(std::integral_constant<bool, p == tier_t(-1)>{});
+    //! @brief Const access to the underlying optional field.
+    option_type const& get() const {
+        return m_data;
     }
 
     //! @brief Const access to the underlying field, with a default if no value available.
-    field_type get_or(field_type f) const {
-        return get_or_impl(std::integral_constant<bool, bool(tier & p)>{}, f);
+    field_type const& get_or(field_type const& f) const {
+        return m_data.get_or(f);
     }
 
     //! @brief Exchanges the content of the `placed` objects.
@@ -355,6 +355,7 @@ class placed {
         return s & m_data;
     }
 
+    //! @brief Prints the content of the placed field to a given output stream.
     template <typename O>
     void print(O& o) const {
         if (bool(tier & p)) {
@@ -382,25 +383,6 @@ class placed {
     template <typename F>
     option_type maybe_field(std::false_type, F&&) {
         return {};
-    }
-
-    //! @brief Write access to the underlying field provided that p is `tier_t(-1)`.
-    field_type& get_impl(std::true_type) {
-        return m_data.front();
-    }
-
-    //! @brief Const access to the underlying field provided that p is `tier_t(-1)`.
-    field_type const& get_impl(std::true_type) const {
-        return m_data.front();
-    }
-
-    //! @brief Const access to the underlying field with a default (value available).
-    field_type get_or_impl(std::true_type, field_type f) const {
-        return m_data.front();
-    }
-    //! @brief Const access to the underlying field with a default (no value available).
-    field_type get_or_impl(std::false_type, field_type f) const {
-        return f;
     }
 
     //! @brief Ordered IDs of exceptions.

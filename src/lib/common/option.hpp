@@ -114,6 +114,16 @@ class option<T, false> {
         return {};
     }
 
+    //! @brief Member access with default.
+    T const& get_or(T const& x) const {
+        return x;
+    }
+
+    //! @brief Member access with default (moving).
+    T get_or(T&& x) const {
+        return std::move(x);
+    }
+
     //! @brief Serialises the content to/from a given output stream.
     template <typename S>
     S& serialize(S& s) const {
@@ -165,7 +175,7 @@ class option<T, true> {
 
     //! @brief Equality operator.
     bool operator==(option const& o) const {
-        return m_data == o.m_data;
+        return bool(m_data == o.m_data);
     }
 
     //! @brief Container size.
@@ -233,6 +243,11 @@ class option<T, true> {
         return m_data;
     }
 
+    //! @brief Member access with default.
+    T const& get_or(T const&) const {
+        return m_data;
+    }
+
     //! @brief Serialises the content from a given input stream.
     template <typename S>
     S& serialize(S& s) {
@@ -294,7 +309,7 @@ class option<T, 2> {
 
     //! @brief Equality operator.
     bool operator==(option const& o) const {
-        return m_some == o.m_some and (not m_some or m_data == o.m_data);
+        return m_some == o.m_some and (not m_some or bool(m_data == o.m_data));
     }
 
     //! @brief Container size.
@@ -373,6 +388,11 @@ class option<T, 2> {
     //! @brief Value extraction.
     explicit operator T() const {
         return m_data;
+    }
+
+    //! @brief Member access with default.
+    T const& get_or(T const& x) const {
+        return m_some ? m_data : x;
     }
 
     //! @brief Serialises the content from a given input stream.
