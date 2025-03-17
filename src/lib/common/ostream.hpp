@@ -122,6 +122,8 @@ template <typename T>
 class field;
 template <tier_t tier, typename T, tier_t p, tier_t q>
 class placed;
+template <typename T>
+class ordered;
 template <typename... Ts>
 class tuple;
 template <size_t n>
@@ -459,6 +461,19 @@ namespace fcpp {
         std::stringstream ss;
         x.print(ss);
         return ss.str();
+    }
+
+    //! @brief Printing fields.
+    template <typename O, typename T, typename = common::if_ostream<O>>
+    O& operator<<(O& o, ordered<T> const& x) {
+        o << x.data;
+        return o;
+    }
+
+    //! @brief Converting fields to strings.
+    template <typename T, typename = fcpp::details::if_stringable<T>>
+    std::string to_string(ordered<T> const& x) {
+        return to_string(x.data);
     }
 
     //! @brief Printing tuples.

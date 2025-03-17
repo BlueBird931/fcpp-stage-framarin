@@ -95,6 +95,18 @@ struct ordered {
         return false;
     }
 
+    //! @brief Serialises the content from/to a given input/output stream.
+    template <typename S>
+    S& serialize(S& s) {
+        return s & data;
+    }
+
+    //! @brief Serialises the content from/to a given input/output stream (const overload).
+    template <typename S>
+    S& serialize(S& s) const {
+        return s << data;
+    }
+
     //! @brief The data to which ordering is added.
     T data;
 };
