@@ -1,19 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="D:\Documenti scuola\Unito 2024-2025\AggregateProgramming\fcpp-exercises\fcpp\src\lib\gps\gps_trace.cpp">
+    <ClCompile Include="D:\Documenti scuola\Unito 2024-2025\AggregateProgramming\fcpp-stage-framarin\src\lib\gps\gps_trace.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Documenti scuola\Unito 2024-2025\AggregateProgramming\fcpp-exercises\fcpp\src\lib\gps\test_main.cpp">
+    <ClCompile Include="D:\Documenti scuola\Unito 2024-2025\AggregateProgramming\fcpp-stage-framarin\src\lib\gps\test_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="D:\Documenti scuola\Unito 2024-2025\AggregateProgramming\fcpp-exercises\fcpp\src\lib\gps\CMakeLists.txt" />
+    <CustomBuild Include="D:\Documenti scuola\Unito 2024-2025\AggregateProgramming\fcpp-stage-framarin\src\lib\gps\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
-      <UniqueIdentifier>{E87A2C4D-04E3-3186-8D14-5EBB80058631}</UniqueIdentifier>
+      <UniqueIdentifier>{3688732F-B341-3D78-AFCB-88415AFBC418}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

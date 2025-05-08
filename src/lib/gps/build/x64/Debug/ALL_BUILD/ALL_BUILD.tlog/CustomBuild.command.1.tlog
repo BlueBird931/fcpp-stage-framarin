@@ -1,6 +1,6 @@
-^D:\DOCUMENTI SCUOLA\UNITO 2024-2025\AGGREGATEPROGRAMMING\FCPP-EXERCISES\FCPP\SRC\LIB\GPS\CMAKELISTS.TXT
+^D:\DOCUMENTI SCUOLA\UNITO 2024-2025\AGGREGATEPROGRAMMING\FCPP-STAGE-FRAMARIN\SRC\LIB\GPS\CMAKELISTS.TXT
 setlocal
-"C:\Program Files\CMake\bin\cmake.exe" "-SD:/Documenti scuola/Unito 2024-2025/AggregateProgramming/fcpp-exercises/fcpp/src/lib/gps" "-BD:/Documenti scuola/Unito 2024-2025/AggregateProgramming/fcpp-exercises/fcpp/src/lib/gps/build" --check-stamp-file "D:/Documenti scuola/Unito 2024-2025/AggregateProgramming/fcpp-exercises/fcpp/src/lib/gps/build/CMakeFiles/generate.stamp"
+"C:\Program Files\CMake\bin\cmake.exe" "-SD:/Documenti scuola/Unito 2024-2025/AggregateProgramming/fcpp-stage-framarin/src/lib/gps" "-BD:/Documenti scuola/Unito 2024-2025/AggregateProgramming/fcpp-stage-framarin/src/lib/gps/build" --check-stamp-file "D:/Documenti scuola/Unito 2024-2025/AggregateProgramming/fcpp-stage-framarin/src/lib/gps/build/CMakeFiles/generate.stamp"
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone

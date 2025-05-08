@@ -23,12 +23,14 @@ namespace gps {
  */
 class gps_trace {
     public: // visible by net objects and the main program
-        struct gps_track_point
+        struct trkpt
         {
             double lat;
             double lon;
 
             //todo: add timestamp management
+
+            //todo: trkpt can also have elevation from <ele> child
         };
 
         
@@ -56,20 +58,53 @@ class gps_trace {
             std::string content = buffer.str();
             file.close();
 
-            rapidxml::xml_document<> doc;
             try {
+                rapidxml::xml_document<> doc;
                 doc.parse<0>(&content[0]);
+
+                rapidxml::xml_node<> *gpx_node = doc.first_node("gpx");
+                if (!gpx_node) { return false; }
+
+                rapidxml::xml_node<> *trk_node = gpx_node->first_node("trk");
+                if (!trk_node) { return false; }
+
+                for (rapidxml::xml_node<>* trkseg_node = trk_node->first_node("trkseg"); 
+                trkseg_node; 
+                trkseg_node = trkseg_node->next_sibling("trkseg")) {
+                        
+                    for (rapidxml::xml_node<>* trkpt_node = trkseg_node->first_node("trkpt"); 
+                    trkpt_node; 
+                    trkpt_node = trkpt_node->next_sibling("trkpt")) {
+                        
+                        trkpt point;
+                        rapidxml::xml_attribute<>* lat = trkpt_node->first_attribute("lat");
+                        rapidxml::xml_attribute<>* lon = trkpt_node->first_attribute("lon");
+
+                        if (lat && lon) {
+                            point.lat = std::stod(lat->value());
+                            point.lon = std::stod(lon->value());
+
+                            track.push_back(point);
+                            print_trkpt(point);
+                        }
+                    }
+                }
+
             } catch (const rapidxml::parse_error& e) {
                 return false;
             } catch (const std::exception& e) {
                 return false;
             }
 
-            return true;
+            return !track.empty(); // Return true if at least one point was loaded
+        }
+
+        void print_trkpt(trkpt t) {
+            std::cout << t.lat << " - " << t.lon << std::endl;
         }
 
     private:
-        std::vector<gps_track_point> track;
+        std::vector<trkpt> track;
 };
 
 }
